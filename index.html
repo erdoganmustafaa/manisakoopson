@@ -5994,14 +5994,6 @@
       }
     }
 
-    async function delSefer(id) {
-      if (!confirm("Silmek istediğinize emin misiniz?")) return;
-      try {
-        await sbSeferSil(id);
-        DB.seferler = DB.seferler.filter(function (s) { return s.id !== id; });
-        renderSeferTab(); renderCariTab(); showToast('Sefer silindi');
-      } catch (e) { showToast('Hata: ' + e.message, 'error'); }
-    }
     async function delFatura(id) {
       if (!confirm("Silmek istediğinize emin misiniz?")) return;
       try {
@@ -6261,14 +6253,22 @@
 
       el.innerHTML = '<table><thead><tr><th>Tarih</th><th>Üye</th><th>Güzergah</th><th>Firma</th><th>Araç</th><th style="text-align:right">Tonaj</th><th>Durum</th><th style="text-align:right">Ücret</th><th></th></tr></thead><tbody>' + trs + '</tbody></table>';
     }
-    async function delSeferG(id) {
-      if (!confirm("Emin misiniz?")) return;
+    async function delSefer(id) {
+      if (!confirm("Silmek istediğinize emin misiniz?")) return;
       try {
         await sbSeferSil(id);
         DB.seferler = DB.seferler.filter(function (s) { return s.id !== id; });
-        renderSeferlerPage(); showToast('Sefer silindi');
-      } catch (e) { showToast('Hata: ' + e.message, 'error'); }
+        // Tüm olası tabloları yenile
+        if (typeof renderCariTab === 'function') renderCariTab();
+        if (typeof renderSeferTab === 'function') renderSeferTab();
+        if (typeof renderSeferlerPage === 'function') renderSeferlerPage();
+        showToast('Sefer silindi');
+      } catch (e) {
+        showToast('Silme hatası: ' + e.message, 'error');
+      }
     }
+    // Global alias
+    async function delSeferG(id) { return delSefer(id); }
 
     // ══════════════════════════════════════════════
     //  YÜKLER
