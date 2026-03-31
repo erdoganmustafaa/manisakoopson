@@ -6759,6 +6759,7 @@
           + '<td><b style="font-size:13px;">' + u.ad + '</b></td>'
           + '<td><span style="font-family:monospace;font-size:12px;background:#f0f3f8;padding:3px 8px;border-radius:5px;">' + u.plaka + '</span></td>'
           + '<td style="font-size:12px;color:var(--text3);">' + (u.tel || '&mdash;') + '</td>'
+          + '<td style="font-size:12px;color:var(--blue2);font-weight:600;">' + (u.username || '&mdash;') + '</td>'
           + '<td style="font-size:12px;color:var(--text3);">' + (u.adres || '&mdash;') + '</td>'
           + '<td style="text-align:center;font-weight:600;color:var(--blue2);">' + seferSayisi + '</td>'
           + '<td class="tg" style="text-align:right;">&#8378;' + fmt(topGelir) + '</td>'
@@ -6772,7 +6773,7 @@
           + '</tr>';
       }).join('');
       el.innerHTML = '<div class="tbl-wrap"><table><thead><tr>'
-        + '<th>#</th><th>Ad Soyad</th><th>Plaka</th><th>Telefon</th><th>Adres</th>'
+        + '<th>#</th><th>Ad Soyad</th><th>Plaka</th><th>Telefon</th><th>Kullanıcı Adı</th><th>Adres</th>'
         + '<th style="text-align:center">Sefer</th>'
         + '<th style="text-align:right">Toplam Gelir</th>'
         + '<th style="text-align:right">Toplam Borç</th>'
@@ -6819,7 +6820,10 @@
         tc: document.getElementById('ue-tc').value.trim(),
         tel: document.getElementById('ue-tel').value.trim(),
         vn: document.getElementById('ue-vn').value.trim(),
-        adres: document.getElementById('ue-adres').value.trim()
+        adres: document.getElementById('ue-adres').value.trim(),
+        username: DB.uyeler[idx].username,
+        password: DB.uyeler[idx].password,
+        role: DB.uyeler[idx].role
       };
 
       try {
