@@ -5292,8 +5292,8 @@
     function buildCariRowsWithBalance() {
       var allRows = [];
       DB.seferler.filter(function (s) { return s.uyeId == selUyeId; }).forEach(function (s) {
-        // Sefer bakiyeye etki etmez — sadece bilgi satırı, açıklamada fiyat gösterilir
-        allRows.push({ tarih: s.tarih, kaynak: 'Sefer', aciklama: s.kalkis + ' → ' + s.varis + ' (' + s.firma + ') | Fiyat: ₺' + s.fiyat, borc: 0, alacak: 0, id: s.id, type: 'sefer' });
+        // Sefer bakiyeye etki etmez — sadece bilgi satırı (0 TL) olarak kalır, asıl bakiye fatura ile oluşur
+        allRows.push({ tarih: s.tarih, kaynak: 'Sefer', aciklama: s.kalkis + ' → ' + s.varis + ' (' + s.firma + ') | Fiyat: ₺' + fmt(s.fiyat), borc: 0, alacak: 0, id: s.id, type: 'sefer' });
       });
       DB.giderler.filter(function (g) { return g.uyeId == selUyeId; }).forEach(function (g) {
         var b = Number(g.borc || 0);
