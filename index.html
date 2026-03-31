@@ -4205,7 +4205,7 @@
     async function loadAllFromSupabase() {
       try {
         var [u, s, g, f, k, sf, y, p, c] = await Promise.all([
-          sb.from('uyeler').select('*').order('id'),
+          sb.from('uyeler').select('id, ad, plaka, tc, tel, vn, adres, kullanici_adi, sifre, rol').order('id'),
           sb.from('seferler').select('*').order('id'),
           sb.from('giderler').select('*').order('id'),
           sb.from('faturalar').select('*').order('id'),
@@ -4272,7 +4272,7 @@
       var { data, error } = await sb.from('uyeler').insert({
         ad: uye.ad, plaka: uye.plaka, tc: uye.tc, tel: uye.tel, vn: uye.vn, adres: uye.adres,
         kullanici_adi: uye.username, sifre: uye.password, rol: uye.role
-      }).select().single();
+      }).select('id, ad, plaka, tc, tel, vn, adres, kullanici_adi, sifre, rol').single();
       if (error) {
         console.error("❌ SUPABASE KAYIT HATASI:", error);
         showToast("VT Hatası: " + error.message, 'error');
