@@ -4259,11 +4259,26 @@
 
     // --- ÜYE KAYDET (Supabase INSERT) ---
     async function sbUyeEkle(uye) {
+      if (!uye.username) {
+        console.warn("DİKKAT: Kullanıcı adı boş! Otomatik üretiliyor...");
+        uye.username = normalizeUsername(uye.ad) || normalizeUsername(uye.plaka);
+      }
+      console.log("Supabase'e Giden Ham Veri:", {
+        ad: uye.ad,
+        username: uye.username,
+        password: uye.password,
+        role: uye.role
+      });
       var { data, error } = await sb.from('uyeler').insert({
         ad: uye.ad, plaka: uye.plaka, tc: uye.tc, tel: uye.tel, vn: uye.vn, adres: uye.adres,
         username: uye.username, password: uye.password, role: uye.role
       }).select().single();
-      if (error) throw error;
+      if (error) {
+        console.error("❌ SUPABASE KAYIT HATASI:", error);
+        showToast("VT Hatası: " + error.message, 'error');
+        throw error;
+      }
+      console.log("✅ Kayıt Başarılı. Dönen veri:", data);
       return mapUye(data);
     }
 
@@ -6105,6 +6120,10 @@
       }
       try {
         var username = normalizeUsername(ad);
+        if (!username) username = normalizeUsername(pl); // İsim boşsa plakadan üret
+        
+        console.log("Oluşturulan kullanıcı adı:", username);
+        
         var createdUye = await sbUyeEkle({ 
           ad: ad, plaka: pl, 
           tc: document.getElementById('u-tc').value, 
@@ -6821,9 +6840,9 @@
         tel: document.getElementById('ue-tel').value.trim(),
         vn: document.getElementById('ue-vn').value.trim(),
         adres: document.getElementById('ue-adres').value.trim(),
-        username: DB.uyeler[idx].username,
-        password: DB.uyeler[idx].password,
-        role: DB.uyeler[idx].role
+        username: DB.uyeler[idx].username || normalizeUsername(ad),
+        password: DB.uyeler[idx].password || '1234',
+        role: DB.uyeler[idx].role || 'member'
       };
 
       try {
