@@ -4233,7 +4233,7 @@
     function mapUye(r) {
       return { 
         id: r.id, ad: r.ad, plaka: r.plaka, tc: r.tc, tel: r.tel, vn: r.vn, adres: r.adres,
-        username: r.username, password: r.password, role: r.role
+        username: r.kullanici_adi, password: r.sifre, role: r.rol
       };
     }
     function mapSefer(r) {
@@ -4265,13 +4265,13 @@
       }
       console.log("Supabase'e Giden Ham Veri:", {
         ad: uye.ad,
-        username: uye.username,
-        password: uye.password,
-        role: uye.role
+        kullanici_adi: uye.username,
+        sifre: uye.password,
+        rol: uye.role
       });
       var { data, error } = await sb.from('uyeler').insert({
         ad: uye.ad, plaka: uye.plaka, tc: uye.tc, tel: uye.tel, vn: uye.vn, adres: uye.adres,
-        username: uye.username, password: uye.password, role: uye.role
+        kullanici_adi: uye.username, sifre: uye.password, rol: uye.role
       }).select().single();
       if (error) {
         console.error("❌ SUPABASE KAYIT HATASI:", error);
@@ -4286,7 +4286,7 @@
     async function sbUyeGuncelle(uye) {
       var { error } = await sb.from('uyeler').update({
         ad: uye.ad, plaka: uye.plaka, tc: uye.tc, tel: uye.tel, vn: uye.vn, adres: uye.adres,
-        username: uye.username, password: uye.password, role: uye.role
+        kullanici_adi: uye.username, sifre: uye.password, rol: uye.role
       }).eq('id', uye.id);
       if (error) throw error;
     }
