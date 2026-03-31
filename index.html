@@ -4231,7 +4231,10 @@
 
     // Alan ismi eşleştirme fonksiyonları (snake_case → camelCase/TR)
     function mapUye(r) {
-      return { id: r.id, ad: r.ad, plaka: r.plaka, tc: r.tc, tel: r.tel, vn: r.vn, adres: r.adres };
+      return { 
+        id: r.id, ad: r.ad, plaka: r.plaka, tc: r.tc, tel: r.tel, vn: r.vn, adres: r.adres,
+        username: r.username, password: r.password, role: r.role
+      };
     }
     function mapSefer(r) {
       return { id: r.id, uyeId: r.uye_id, tarih: r.tarih, kalkis: r.kalkis, varis: r.varis, arac: r.arac, firma: r.firma, fiyat: Number(r.fiyat), tonaj: Number(r.tonaj || 0), durum: r.durum };
@@ -4257,7 +4260,8 @@
     // --- ÜYE KAYDET (Supabase INSERT) ---
     async function sbUyeEkle(uye) {
       var { data, error } = await sb.from('uyeler').insert({
-        ad: uye.ad, plaka: uye.plaka, tc: uye.tc, tel: uye.tel, vn: uye.vn, adres: uye.adres
+        ad: uye.ad, plaka: uye.plaka, tc: uye.tc, tel: uye.tel, vn: uye.vn, adres: uye.adres,
+        username: uye.username, password: uye.password, role: uye.role
       }).select().single();
       if (error) throw error;
       return mapUye(data);
@@ -4266,7 +4270,8 @@
     // --- ÜYE GÜNCELLE (Supabase UPDATE) ---
     async function sbUyeGuncelle(uye) {
       var { error } = await sb.from('uyeler').update({
-        ad: uye.ad, plaka: uye.plaka, tc: uye.tc, tel: uye.tel, vn: uye.vn, adres: uye.adres
+        ad: uye.ad, plaka: uye.plaka, tc: uye.tc, tel: uye.tel, vn: uye.vn, adres: uye.adres,
+        username: uye.username, password: uye.password, role: uye.role
       }).eq('id', uye.id);
       if (error) throw error;
     }
@@ -6099,9 +6104,19 @@
         return; 
       }
       try {
-        var createdUye = await sbUyeEkle({ ad: ad, plaka: pl, tc: document.getElementById('u-tc').value, tel: document.getElementById('u-tel').value, vn: document.getElementById('u-vn').value, adres: document.getElementById('u-adres').value });
+        var username = normalizeUsername(ad);
+        var createdUye = await sbUyeEkle({ 
+          ad: ad, plaka: pl, 
+          tc: document.getElementById('u-tc').value, 
+          tel: document.getElementById('u-tel').value, 
+          vn: document.getElementById('u-vn').value, 
+          adres: document.getElementById('u-adres').value,
+          username: username,
+          password: '1234',
+          role: 'member'
+        });
         DB.uyeler.push(createdUye);
-        closeModal('m-uye'); renderUyeler(); var nbu = document.getElementById('nb-uyeler'); if (nbu) nbu.textContent = DB.uyeler.length; showToast('Üye eklendi');
+        closeModal('m-uye'); renderUyeler(); var nbu = document.getElementById('nb-uyeler'); if (nbu) nbu.textContent = DB.uyeler.length; showToast('Üye eklendi. Kullanıcı adı: ' + username);
       } catch (e) {
         showToast('Hata: ' + e.message, 'error');
       } finally {
@@ -6544,7 +6559,26 @@
       if (btn) { btn.disabled = true; btn.innerHTML = '⌛ Lütfen Bekleyin...'; }
       var u = document.getElementById('login-user').value.trim().toLowerCase();
       var p = document.getElementById('login-pass').value;
+      
+      // 1. Sabit USERS listesinde ara
       var found = USERS.find(function (x) { return x.username === u && x.password === p; });
+      
+      // 2. Bulunamazsa DB.uyeler içinde ara
+      if (!found) {
+        var dbUye = DB.uyeler.find(function(x) { 
+          return x.username && x.username.toLowerCase() === u && x.password === p; 
+        });
+        if (dbUye) {
+          found = { 
+            username: dbUye.username, 
+            password: dbUye.password, 
+            displayName: dbUye.ad, 
+            role: dbUye.role || 'member', 
+            uyeId: dbUye.id 
+          };
+        }
+      }
+
       var errEl = document.getElementById('login-err');
       
       try {
@@ -7212,6 +7246,14 @@
         document.getElementById('cari-sf-autocomplete').style.display = 'none';
         cariSfGoster(id);
       }
+    }
+
+    function normalizeUsername(text) {
+      if (!text) return '';
+      var ch = { 'ç': 'c', 'ğ': 'g', 'ı': 'i', 'İ': 'i', 'ö': 'o', 'ş': 's', 'ü': 'u', 'Ç': 'c', 'Ğ': 'g', 'Ö': 'o', 'Ş': 's', 'Ü': 'u' };
+      var t = text.trim().toLowerCase();
+      Object.keys(ch).forEach(function (k) { t = t.replace(new RegExp(k, 'g'), ch[k]); });
+      return t.replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '');
     }
 
     function normalizeTR(s) {
