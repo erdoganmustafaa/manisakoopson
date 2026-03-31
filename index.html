@@ -4046,11 +4046,11 @@
           <div class="fg"><label>Fis No</label><input type="text" id="petrol-edit-fis" placeholder="F-2026-001" /></div>
         </div>
         <div class="fg"><label>Tutar (TL)</label><input type="number" id="petrol-edit-tutar" placeholder="0" /></div>
-        </div>
-        <div class="fg"><label>Not</label><input type="text" id="petrol-edit-not" placeholder="Aciklama..." /></div>
-        <button class="btn-save" onclick="petrolIslemGuncelle()">Degisiklikleri Kaydet</button>
       </div>
+      <div class="fg"><label>Not</label><input type="text" id="petrol-edit-not" placeholder="Aciklama..." /></div>
+      <button class="btn-save" onclick="petrolIslemGuncelle()">Degisiklikleri Kaydet</button>
     </div>
+  </div>
   </div>
 
   <!-- KAMYON MODAL -->
@@ -4231,7 +4231,7 @@
 
     // Alan ismi eşleştirme fonksiyonları (snake_case → camelCase/TR)
     function mapUye(r) {
-      return { 
+      return {
         id: r.id, ad: r.ad, plaka: r.plaka, tc: r.tc, tel: r.tel, vn: r.vn, adres: r.adres,
         username: r.kullanici_adi, password: r.sifre, role: r.rol
       };
@@ -4474,8 +4474,8 @@
 
     // --- CEK SIL (Supabase DELETE) ---
     async function sbCekSil(id) {
-       var { error } = await sb.from('cekler').delete().eq('id', id);
-       if (error) throw error;
+      var { error } = await sb.from('cekler').delete().eq('id', id);
+      if (error) throw error;
     }
 
     // --- YUK KAYDET (Supabase INSERT) ---
@@ -4855,7 +4855,7 @@
       var not = document.getElementById('pm-not').value.trim();
       var editId = document.getElementById('pm-edit-id').value;
 
-      var u = DB.uyeler.find(function(x){ return x.id == uyeId; });
+      var u = DB.uyeler.find(function (x) { return x.id == uyeId; });
       var uInfo = u ? ' - ' + u.ad + ' (' + u.plaka + ')' : '';
 
       try {
@@ -5294,10 +5294,10 @@
       var tar = document.getElementById('g-tarih').value.split('-').reverse().join('.');
       var borc = parseFloat(document.getElementById('g-borc').value) || 0;
       var alacak = parseFloat(document.getElementById('g-alacak').value) || 0;
-      if (!borc && !alacak) { 
-        showToast('Borç veya Alacak tutarı giriniz', 'error'); 
+      if (!borc && !alacak) {
+        showToast('Borç veya Alacak tutarı giriniz', 'error');
         if (btn) { btn.disabled = false; btn.innerHTML = '✅ Kaydı Kaydet'; }
-        return; 
+        return;
       }
       try {
         var tur = document.getElementById('g-tur').value;
@@ -5309,7 +5309,7 @@
           var firma = fMap[tur];
           if (firma) {
             try {
-              var u = DB.uyeler.find(function(x){ return x.id == selUyeId; });
+              var u = DB.uyeler.find(function (x) { return x.id == selUyeId; });
               var uInfo = u ? ' - ' + u.ad + ' (' + u.plaka + ')' : '';
               var pNot = (document.getElementById('g-aciklama').value || tur) + uInfo;
 
@@ -5330,20 +5330,20 @@
           }
         }
 
-        var u = DB.uyeler.find(function(x){ return x.id == selUyeId; });
+        var u = DB.uyeler.find(function (x) { return x.id == selUyeId; });
         var uInfo = u ? ' - ' + u.ad + ' (' + u.plaka + ')' : '';
         var finalAciklama = (document.getElementById('g-aciklama').value || tur);
         if (tur.startsWith('Mazot -')) finalAciklama += uInfo;
 
-        var newGider = { 
-          uyeId: selUyeId, 
-          tarih: tar, 
-          tur: tur, 
-          aciklama: finalAciklama, 
-          borc: borc, 
-          alacak: alacak, 
+        var newGider = {
+          uyeId: selUyeId,
+          tarih: tar,
+          tur: tur,
+          aciklama: finalAciklama,
+          borc: borc,
+          alacak: alacak,
           tutar: borc - alacak,
-          petrolId: pId 
+          petrolId: pId
         };
         var created = await sbGiderEkle(newGider);
         DB.giderler.push(created);
@@ -6081,10 +6081,10 @@
       var kal = document.getElementById('s-kalkis').value.trim().toUpperCase();
       var var_ = document.getElementById('s-varis').value.trim().toUpperCase();
       var fiy = parseFloat(document.getElementById('s-fiyat').value) || 0;
-      if (!kal || !var_ || !fiy) { 
-        showToast('Güzergah ve fiyat zorunlu', 'error'); 
+      if (!kal || !var_ || !fiy) {
+        showToast('Güzergah ve fiyat zorunlu', 'error');
         if (btn) { btn.disabled = false; btn.innerHTML = '✅ Seferi Kaydet'; }
-        return; 
+        return;
       }
 
       try {
@@ -6113,22 +6113,22 @@
       if (btn) { btn.disabled = true; btn.innerHTML = '⌛ Ekleniyor...'; }
       var ad = document.getElementById('u-ad').value.trim().toUpperCase();
       var pl = document.getElementById('u-plaka').value.trim().toUpperCase();
-      if (!ad || !pl) { 
-        showToast('Ad ve plaka zorunlu', 'error'); 
+      if (!ad || !pl) {
+        showToast('Ad ve plaka zorunlu', 'error');
         if (btn) { btn.disabled = false; btn.innerHTML = '✅ Üyeyi Kaydet'; }
-        return; 
+        return;
       }
       try {
         var username = normalizeUsername(ad);
         if (!username) username = normalizeUsername(pl); // İsim boşsa plakadan üret
-        
+
         console.log("Oluşturulan kullanıcı adı:", username);
-        
-        var createdUye = await sbUyeEkle({ 
-          ad: ad, plaka: pl, 
-          tc: document.getElementById('u-tc').value, 
-          tel: document.getElementById('u-tel').value, 
-          vn: document.getElementById('u-vn').value, 
+
+        var createdUye = await sbUyeEkle({
+          ad: ad, plaka: pl,
+          tc: document.getElementById('u-tc').value,
+          tel: document.getElementById('u-tel').value,
+          vn: document.getElementById('u-vn').value,
           adres: document.getElementById('u-adres').value,
           username: username,
           password: '1234',
@@ -6411,10 +6411,10 @@
     async function yukKaydet(btn) {
       if (btn) { btn.disabled = true; btn.innerHTML = '⌛ Kaydediliyor...'; }
       var ad = document.getElementById('y-ad').value.trim();
-      if (!ad) { 
-        showToast('Yük adı zorunlu', 'error'); 
+      if (!ad) {
+        showToast('Yük adı zorunlu', 'error');
         if (btn) { btn.disabled = false; btn.innerHTML = '✅ Yükü Kaydet'; }
-        return; 
+        return;
       }
       var tar = document.getElementById('y-tarih').value.split('-').reverse().join('.');
       try {
@@ -6457,10 +6457,10 @@
     async function kamyonKaydet(btn) {
       if (btn) { btn.disabled = true; btn.innerHTML = '⌛ Kaydediliyor...'; }
       var pl = document.getElementById('k-plaka').value.trim().toUpperCase();
-      if (!pl) { 
-        showToast('Plaka zorunlu', 'error'); 
+      if (!pl) {
+        showToast('Plaka zorunlu', 'error');
         if (btn) { btn.disabled = false; btn.innerHTML = '✅ Aracı Kaydet'; }
-        return; 
+        return;
       }
       try {
         var obj = await sbKamyonEkle({ plaka: pl, marka: document.getElementById('k-marka').value, tip: document.getElementById('k-tip').value, yil: document.getElementById('k-yil').value, ruhsat: document.getElementById('k-ruhsat').value.split('-').reverse().join('.'), sigorta: document.getElementById('k-sigorta').value.split('-').reverse().join('.'), durum: 'Aktif' });
@@ -6496,10 +6496,10 @@
     async function soforKaydet(btn) {
       if (btn) { btn.disabled = true; btn.innerHTML = '⌛ Kaydediliyor...'; }
       var ad = document.getElementById('sf-ad').value.trim();
-      if (!ad) { 
-        showToast('Ad zorunlu', 'error'); 
+      if (!ad) {
+        showToast('Ad zorunlu', 'error');
         if (btn) { btn.disabled = false; btn.innerHTML = '✅ Şoförü Kaydet'; }
-        return; 
+        return;
       }
       try {
         var obj = await sbSoforEkle({ ad: ad, tel: document.getElementById('sf-tel').value, arac: document.getElementById('sf-arac').value.toUpperCase(), ehliyet: document.getElementById('sf-ehliyet').value, src: document.getElementById('sf-src').value.split('-').reverse().join('.'), durum: document.getElementById('sf-durum').value });
@@ -6578,28 +6578,28 @@
       if (btn) { btn.disabled = true; btn.innerHTML = '⌛ Lütfen Bekleyin...'; }
       var u = document.getElementById('login-user').value.trim().toLowerCase();
       var p = document.getElementById('login-pass').value;
-      
+
       // 1. Sabit USERS listesinde ara
       var found = USERS.find(function (x) { return x.username === u && x.password === p; });
-      
+
       // 2. Bulunamazsa DB.uyeler içinde ara
       if (!found) {
-        var dbUye = DB.uyeler.find(function(x) { 
-          return x.username && x.username.toLowerCase() === u && x.password === p; 
+        var dbUye = DB.uyeler.find(function (x) {
+          return x.username && x.username.toLowerCase() === u && x.password === p;
         });
         if (dbUye) {
-          found = { 
-            username: dbUye.username, 
-            password: dbUye.password, 
-            displayName: dbUye.ad, 
-            role: dbUye.role || 'member', 
-            uyeId: dbUye.id 
+          found = {
+            username: dbUye.username,
+            password: dbUye.password,
+            displayName: dbUye.ad,
+            role: dbUye.role || 'member',
+            uyeId: dbUye.id
           };
         }
       }
 
       var errEl = document.getElementById('login-err');
-      
+
       try {
         if (!found) {
           errEl.classList.add('show');
@@ -6806,7 +6806,7 @@
       try {
         await sbUyeSil(id);
         DB.uyeler = DB.uyeler.filter(function (u) { return u.id !== id; });
-        renderUyeListesi(); 
+        renderUyeListesi();
         showToast('Üye silindi');
       } catch (e) { showToast('Silme hatası: ' + e.message, 'error'); }
     }
@@ -6831,7 +6831,7 @@
       var ad = document.getElementById('ue-ad').value.trim();
       var plaka = document.getElementById('ue-plaka').value.trim();
       if (!ad || !plaka) { showToast('Ad ve plaka zorunludur', 'error'); return; }
-      
+
       var updatedUye = {
         id: id,
         ad: ad,
@@ -6956,10 +6956,10 @@
       var firmaKey = kimePetrol || (kimeUyeId ? null : selPetrolFirma);
       var uyeId = firmaKey ? null : (kimeUyeId ? Number(kimeUyeId) : selUyeId);
 
-      if (!uyeId && !firmaKey) { 
-        showToast('Lütfen bir cari hesap seçin (Kime?)', 'error'); 
+      if (!uyeId && !firmaKey) {
+        showToast('Lütfen bir cari hesap seçin (Kime?)', 'error');
         if (btn) { btn.disabled = false; btn.innerHTML = 'Ceki Kaydet'; }
-        return; 
+        return;
       }
 
       var tur = document.getElementById('cek-tur').value;
@@ -6971,10 +6971,10 @@
       var aciklama = document.getElementById('cek-aciklama').value.trim();
       var durum = document.getElementById('cek-durum').value;
 
-      if (!tarihVal || !vadeVal || !cekNo || !tutar) { 
-        showToast('Tarih, vade, cek no ve tutar zorunludur', 'error'); 
+      if (!tarihVal || !vadeVal || !cekNo || !tutar) {
+        showToast('Tarih, vade, cek no ve tutar zorunludur', 'error');
         if (btn) { btn.disabled = false; btn.innerHTML = 'Ceki Kaydet'; }
-        return; 
+        return;
       }
 
       var tarih = tarihVal.split('-').reverse().join('.');
@@ -7198,7 +7198,7 @@
         if (typeof aktifPetrolFirma !== 'undefined' && aktifPetrolFirma) {
           petrolCariSecFirma(aktifPetrolFirma);
         } else {
-           renderPetrolTablo(); renderPetrol();
+          renderPetrolTablo(); renderPetrol();
         }
         showToast('Petrol islemi guncellendi');
       } catch (e) { showToast('Hata: ' + e.message, 'error'); }
