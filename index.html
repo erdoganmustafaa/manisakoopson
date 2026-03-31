@@ -11,6 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
     rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
       --navy: #0b1426;
@@ -4178,163 +4179,273 @@
 
   <script>
     // ══════════════════════════════════════════════
-    //  STATE — localStorage backed
-    // ═══════  ══════════════════════════════════════
-    function load(k, def) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch (e) { return def; } }
-    function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } }
+    //  SUPABASE CLIENT
+    // ══════════════════════════════════════════════
+    var SUPABASE_URL = 'https://oyxkxqtgdngfacswqaxw.supabase.co';
+    var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95eGt4cXRnZG5nZmFjc3dxYXh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5MzM1MTUsImV4cCI6MjA5MDUwOTUxNX0.WNrw257HHXB5wIFNXiKmDJ72WTWW0T2unyvnspl0k0U';
+    var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+    // ══════════════════════════════════════════════
+    //  IN-MEMORY STATE (Supabase'den doldurulur)
+    // ══════════════════════════════════════════════
     var DB = {
-      uyeler: load('mk_uyeler', [
-        { id: 1, ad: 'FERHAT DUVA', plaka: '45 AUN 123', tc: '11111111111', tel: '0555 111 1111', vn: '11111111', adres: 'Manisa Merkez' },
-        { id: 2, ad: 'MEHMET DEMİR', plaka: '45 ABC 456', tc: '22222222222', tel: '0544 222 2222', vn: '22222222', adres: 'Akhisar' },
-        { id: 3, ad: 'ALİ YILMAZ', plaka: '45 XYZ 789', tc: '33333333333', tel: '0533 333 3333', vn: '33333333', adres: 'Salihli' },
-        { id: 4, ad: 'ÖMER GÜZEL', plaka: '45 HH 486/07 BZC 537', tc: '-', tel: '-', vn: '-', adres: '-' }
-      ]),
-      seferler: load('mk_seferler', [
-        { id: 1, uyeId: 1, tarih: '17.01.2026', kalkis: 'MANİSA', varis: 'HAKKARİ', arac: 'Tır', firma: 'HOROZ', fiyat: 30000, tonaj: 18, durum: 'Tamamlandı' },
-        { id: 2, uyeId: 1, tarih: '22.01.2026', kalkis: 'MANİSA', varis: 'ANKARA', arac: 'Tır', firma: 'GPS', fiyat: 25100, tonaj: 12.5, durum: 'Tamamlandı' },
-        { id: 3, uyeId: 2, tarih: '10.01.2026', kalkis: 'MANİSA', varis: 'İZMİR', arac: 'Kamyon', firma: 'HOROZ', fiyat: 8000, tonaj: 5, durum: 'Tamamlandı' },
-        { id: 4, uyeId: 3, tarih: '05.02.2026', kalkis: 'MANİSA', varis: 'BURSA', arac: 'Tır', firma: 'MNG', fiyat: 12000, tonaj: 14, durum: 'Tamamlandı' },
-        { id: 5, uyeId: 1, tarih: '03.02.2026', kalkis: 'MANİSA', varis: 'İSTANBUL', arac: 'Tır', firma: 'POLİNAS', fiyat: 28000, tonaj: 20, durum: 'Tamamlandı' },
-        { id: 6, uyeId: 1, tarih: '14.02.2026', kalkis: 'MANİSA', varis: 'ERZURUM', arac: 'Tır', firma: 'HOROZ', fiyat: 34000, tonaj: 22, durum: 'Tamamlandı' },
-        { id: 7, uyeId: 1, tarih: '25.02.2026', kalkis: 'MANİSA', varis: 'TRABZON', arac: 'Tır', firma: 'GPS', fiyat: 31500, tonaj: 19, durum: 'Tamamlandı' },
-        { id: 8, uyeId: 1, tarih: '08.03.2026', kalkis: 'MANİSA', varis: 'VAN', arac: 'Tır', firma: 'POLİNAS', fiyat: 38000, tonaj: 24, durum: 'Aktif' },
-        { id: 9, uyeId: 4, tarih: '18.03.2026', kalkis: 'MANİSA', varis: 'İSTANBUL *31411*EG', arac: 'Tır', firma: 'POLİNAS', fiyat: 430, tonaj: 20, durum: 'Tamamlandı' },
-        { id: 11, uyeId: 4, tarih: '25.03.2026', kalkis: 'MANİSA', varis: 'İSTANBUL 2 YER *32343', arac: 'Tır', firma: 'POLİNAS', fiyat: 2280, tonaj: 20, durum: 'Tamamlandı' },
-        { id: 12, uyeId: 4, tarih: '27.03.2026', kalkis: 'MANİSA', varis: 'AVCILAR *31052', arac: 'Tır', firma: 'HOROZ', fiyat: 4130, tonaj: 20, durum: 'Tamamlandı' }
-      ]),
-      giderler: load('mk_giderler', [
-        { id: 1, uyeId: 1, tarih: '22.01.2026', tur: 'Mazot - Atlı', aciklama: 'Mazot - Ankara dönüş', tutar: 8000 },
-        { id: 2, uyeId: 1, tarih: '22.01.2026', tur: 'Nakit', aciklama: 'NAKİT avans', tutar: 3000 },
-        { id: 3, uyeId: 1, tarih: '17.01.2026', tur: 'Mazot - Shell', aciklama: 'Mazot - Hakkari gidiş', tutar: 20000 },
-        { id: 4, uyeId: 1, tarih: '15.01.2026', tur: 'Mazot - Petrol Ofisi', aciklama: 'Mazot - Depo', tutar: 500 },
-        { id: 5, uyeId: 2, tarih: '10.01.2026', tur: 'Mazot - Akın Grup', aciklama: 'Mazot', tutar: 3500 },
-        { id: 6, uyeId: 3, tarih: '05.02.2026', tur: 'Mazot - Shell', aciklama: 'Mazot', tutar: 4200 },
-        { id: 7, uyeId: 1, tarih: '04.02.2026', tur: 'Diğer', aciklama: 'Gemi bileti - İstanbul', tutar: 4500 },
-        { id: 8, uyeId: 1, tarih: '04.02.2026', tur: 'Mazot - Atlı', aciklama: 'Mazot - İstanbul gidiş', tutar: 12000 },
-        { id: 9, uyeId: 1, tarih: '05.02.2026', tur: 'Nakit', aciklama: 'NAKİT - Yol masrafı', tutar: 2000 },
-        { id: 10, uyeId: 1, tarih: '14.02.2026', tur: 'Diğer', aciklama: 'Gemi bileti 2 adet - Erzurum', tutar: 7500 },
-        { id: 11, uyeId: 1, tarih: '15.02.2026', tur: 'Mazot - Petrol Ofisi', aciklama: 'Mazot - Erzurum', tutar: 18000 },
-        { id: 12, uyeId: 1, tarih: '15.02.2026', tur: 'Bakım', aciklama: 'Lastik değişimi', tutar: 3200 },
-        { id: 13, uyeId: 1, tarih: '25.02.2026', tur: 'Mazot - Akın Grup', aciklama: 'Mazot - Trabzon', tutar: 15000 },
-        { id: 14, uyeId: 1, tarih: '26.02.2026', tur: 'Nakit', aciklama: 'NAKİT - Konaklama', tutar: 1500 },
-        { id: 15, uyeId: 1, tarih: '26.02.2026', tur: 'Diğer', aciklama: 'Gemi bileti - Trabzon dönüş', tutar: 3800 },
-        { id: 16, uyeId: 1, tarih: '09.03.2026', tur: 'Mazot - Shell', aciklama: 'Mazot - Van gidiş', tutar: 22000 },
-        { id: 17, uyeId: 1, tarih: '10.03.2026', tur: 'Sigorta', aciklama: 'Zorunlu trafik sigortası', tutar: 4800 },
-        { id: 18, uyeId: 1, tarih: '10.03.2026', tur: 'Nakit', aciklama: 'NAKİT - Yol avansı', tutar: 5000 },
-        { id: 19, uyeId: 4, tarih: '17.03.2026', tur: 'Tediye', aciklama: 'ATLI', tutar: 20413.30 },
-        { id: 20, uyeId: 4, tarih: '18.03.2026', tur: 'Tediye', aciklama: 'POLINAS IST. KARSI *31411*EG', tutar: 430 },
-        { id: 21, uyeId: 4, tarih: '19.03.2026', tur: 'Tediye', aciklama: 'ATLI', tutar: 3786.64 },
-        { id: 22, uyeId: 4, tarih: '23.03.2026', tur: 'Tediye', aciklama: 'ATLI', tutar: 48465.45 },
-        { id: 23, uyeId: 4, tarih: '25.03.2026', tur: 'Tediye', aciklama: 'ATLI', tutar: 11555.50 },
-        { id: 24, uyeId: 4, tarih: '25.03.2026', tur: 'Tediye', aciklama: 'POLINAS IST. KARSI 2 YER *32343', tutar: 2280 },
-        { id: 25, uyeId: 4, tarih: '25.03.2026', tur: 'Tediye', aciklama: 'GEMI', tutar: 5550 },
-        { id: 26, uyeId: 4, tarih: '27.03.2026', tur: 'Tediye', aciklama: 'HOROZ AVCILAR *31052', tutar: 4130 }
-      ]),
-      faturalar: load('mk_faturalar', [
-        { id: 1, uyeId: 1, tarih: '16.03.2026', seri: 'GIB2026', sira: '26', aciklama: 'CİCİKUS FARK BEDELİ', matrah: 50000, kdvOran: 20, kdvTutar: 10000, toplam: 60000 },
-        { id: 2, uyeId: 4, tarih: '25.03.2026', seri: 'OMR', sira: '202655', aciklama: 'POLINAS ISTANBUL', matrah: 74814.20, kdvOran: 0, kdvTutar: 0, toplam: 74814.20 }
-      ]),
-      kamyonlar: load('mk_kamyonlar', [
-        { id: 1, plaka: '45 AUN 123', marka: 'Mercedes Actros', tip: 'Tır', yil: 2021, ruhsat: '15.06.2026', sigorta: '30.04.2026', durum: 'Aktif' },
-        { id: 2, plaka: '45 ABC 456', marka: 'Volvo FH16', tip: 'Tır', yil: 2019, ruhsat: '20.08.2026', sigorta: '15.06.2026', durum: 'Aktif' },
-        { id: 3, plaka: '45 XYZ 789', marka: 'DAF XF', tip: 'Frigorifik', yil: 2020, ruhsat: '10.11.2026', sigorta: '01.09.2026', durum: 'Bakımda' }
-      ]),
-      soforler: load('mk_soforler', [
-        { id: 1, ad: 'Ferhat Duva', tel: '0555 111 1111', arac: '45 AUN 123', ehliyet: 'M1234567', src: '30.06.2027', durum: 'Aktif' },
-        { id: 2, ad: 'Mehmet Demir', tel: '0544 222 2222', arac: '45 ABC 456', ehliyet: 'M2345678', src: '15.04.2026', durum: 'Aktif' },
-        { id: 3, ad: 'Ali Yılmaz', tel: '0533 333 3333', arac: '45 XYZ 789', ehliyet: 'M3456789', src: '01.01.2027', durum: 'İzinli' }
-      ]),
-      yukler: load('mk_yukler', [
-        { id: 1, ad: 'Tekstil', tonaj: 12.5, gon: 'MANİSA TEKSTİL A.Ş.', alici: 'ANKARA DİSTRİBÜTÖR', tarih: '22.01.2026', durum: 'Yolda' },
-        { id: 2, ad: 'Gıda', tonaj: 18, gon: 'HOROZ LOJİSTİK', alici: 'HAKKARİ MARKET', tarih: '17.01.2026', durum: 'Teslim Edildi' },
-        { id: 3, ad: 'İnşaat Malz.', tonaj: 5, gon: 'MANİSA DEMİR', alici: 'İZMİR İNŞAAT', tarih: '10.01.2026', durum: 'Teslim Edildi' }
-      ]),
-      nextId: load('mk_nid', 100),
-      petrol: load('mk_petrol', [
-        { id: 201, firma: 'AKIN', uyeId: 1, tarih: '18.01.2026', fis: 'F-2026-001', tutar: 8000, litre: 220, not: 'Hakkari öncesi' },
-        { id: 202, firma: 'AKIN', uyeId: 1, tarih: '23.01.2026', fis: 'F-2026-002', tutar: 6500, litre: 178, not: 'Ankara dönüş' },
-        { id: 203, firma: 'ATLI', uyeId: 1, tarih: '04.02.2026', fis: 'A-2026-010', tutar: 12000, litre: 330, not: 'İstanbul yolculuğu' },
-        { id: 204, firma: 'AKIN', uyeId: 1, tarih: '15.02.2026', fis: 'F-2026-018', tutar: 18000, litre: 495, not: 'Erzurum uzun hat' },
-        { id: 205, firma: 'ATLI', uyeId: 1, tarih: '16.02.2026', fis: 'A-2026-021', tutar: 3200, litre: 88, not: '' },
-        { id: 206, firma: 'AKIN', uyeId: 1, tarih: '26.02.2026', fis: 'F-2026-025', tutar: 15000, litre: 412, not: 'Trabzon' },
-        { id: 207, firma: 'ATLI', uyeId: 2, tarih: '11.01.2026', fis: 'A-2026-005', tutar: 3500, litre: 96, not: 'İzmir seferi' },
-        { id: 208, firma: 'AKIN', uyeId: 3, tarih: '06.02.2026', fis: 'F-2026-012', tutar: 4200, litre: 115, not: 'Bursa' },
-        { id: 209, firma: 'ATLI', uyeId: 1, tarih: '09.03.2026', fis: 'A-2026-044', tutar: 22000, litre: 604, not: 'Van uzun hat' },
-        { id: 210, firma: 'AKIN', uyeId: 2, tarih: '12.02.2026', fis: 'F-2026-020', tutar: 5800, litre: 159, not: '' },
-        { id: 211, firma: 'SHELL', uyeId: 1, tarih: '20.01.2026', fis: 'SH-2026-003', tutar: 9500, litre: 261, not: 'Hakkari dönüş' },
-        { id: 212, firma: 'SHELL', uyeId: 1, tarih: '05.02.2026', fis: 'SH-2026-011', tutar: 11200, litre: 307, not: 'İstanbul yol' },
-        { id: 213, firma: 'SHELL', uyeId: 2, tarih: '13.01.2026', fis: 'SH-2026-002', tutar: 4100, litre: 113, not: '' },
-        { id: 214, firma: 'SHELL', uyeId: 1, tarih: '01.03.2026', fis: 'SH-2026-031', tutar: 14500, litre: 398, not: 'Van öncesi' }
-      ]),
-      cekler: load('mk_cekler', [
-        { id: 301, tur: 'verilen', uyeId: 1, petrolFirma: null, tarih: '15.01.2026', vade: '15.03.2026', banka: 'Ziraat Bankasi', cekNo: 'ZB-2026-001', tutar: 25000, aciklama: 'Mazot odemesi', durum: 'Tahsil Edildi' },
-        { id: 302, tur: 'verilen', uyeId: 2, petrolFirma: null, tarih: '20.01.2026', vade: '20.04.2026', banka: 'Is Bankasi', cekNo: 'IB-2026-012', tutar: 15000, aciklama: 'Yedek parca', durum: 'Beklemede' },
-        { id: 303, tur: 'alinan', uyeId: 1, petrolFirma: null, tarih: '10.02.2026', vade: '10.05.2026', banka: 'Garanti BBVA', cekNo: 'GB-2026-055', tutar: 30000, aciklama: 'Sefer odemesi', durum: 'Beklemede' },
-        { id: 304, tur: 'alinan', uyeId: 3, petrolFirma: null, tarih: '25.02.2026', vade: '25.04.2026', banka: 'Yapi Kredi', cekNo: 'YK-2026-033', tutar: 12000, aciklama: 'Navlun bedeli', durum: 'Tahsil Edildi' },
-        { id: 305, tur: 'verilen', uyeId: null, petrolFirma: 'AKIN', tarih: '05.02.2026', vade: '05.04.2026', banka: 'Ziraat Bankasi', cekNo: 'ZB-2026-010', tutar: 45000, aciklama: 'Akin Grup mazot odemesi', durum: 'Beklemede' },
-        { id: 306, tur: 'verilen', uyeId: null, petrolFirma: 'AKIN', tarih: '18.03.2026', vade: '18.05.2026', banka: 'Is Bankasi', cekNo: 'IB-2026-021', tutar: 32000, aciklama: 'Mazot - mart ayi', durum: 'Beklemede' },
-        { id: 307, tur: 'verilen', uyeId: null, petrolFirma: 'ATLI', tarih: '10.02.2026', vade: '10.04.2026', banka: 'Garanti BBVA', cekNo: 'GB-2026-031', tutar: 28000, aciklama: 'Atli Petrol odemesi', durum: 'Tahsil Edildi' },
-        { id: 308, tur: 'verilen', uyeId: null, petrolFirma: 'SHELL', tarih: '22.01.2026', vade: '22.03.2026', banka: 'Yapi Kredi', cekNo: 'YK-2026-011', tutar: 19500, aciklama: 'Shell mazot odemesi', durum: 'Beklemede' }
-      ])
+      uyeler: [],
+      seferler: [],
+      giderler: [],
+      faturalar: [],
+      kamyonlar: [],
+      soforler: [],
+      yukler: [],
+      petrol: [],
+      cekler: []
     };
 
-    function nid() { DB.nextId++; save('mk_nid', DB.nextId); return DB.nextId; }
-    function saveAll() {
-      ['uyeler', 'seferler', 'giderler', 'faturalar', 'kamyonlar', 'soforler', 'yukler', 'petrol', 'cekler'].forEach(function (k) { save('mk_' + k, DB[k]); });
+    // Yardımcı: Supabase'den tüm veriyi yükle
+    async function loadAllFromSupabase() {
+      try {
+        var [u, s, g, f, k, sf, y, p, c] = await Promise.all([
+          sb.from('uyeler').select('*').order('id'),
+          sb.from('seferler').select('*').order('id'),
+          sb.from('giderler').select('*').order('id'),
+          sb.from('faturalar').select('*').order('id'),
+          sb.from('kamyonlar').select('*').order('id'),
+          sb.from('soforler').select('*').order('id'),
+          sb.from('yukler').select('*').order('id'),
+          sb.from('petrol').select('*').order('id'),
+          sb.from('cekler').select('*').order('id')
+        ]);
+        DB.uyeler = (u.data || []).map(mapUye);
+        DB.seferler = (s.data || []).map(mapSefer);
+        DB.giderler = (g.data || []).map(mapGider);
+        DB.faturalar = (f.data || []).map(mapFatura);
+        DB.kamyonlar = (k.data || []);
+        DB.soforler = (sf.data || []);
+        DB.yukler = (y.data || []);
+        DB.petrol = (p.data || []).map(mapPetrol);
+        DB.cekler = (c.data || []).map(mapCek);
+      } catch (e) {
+        showToast('Veri yükleme hatası: ' + e.message, 'error');
+      }
     }
 
-    // OMER GUZEL AUTOMATIC INJECTOR
-    (function checkOmerGuzel() {
-      // 1- Eger uye defaati degilse localStorage a ekle
-      var hasOmer = DB.uyeler.find(function (u) { return u.id == 4; });
-      if (!hasOmer) {
-        DB.uyeler.push({ id: 4, ad: 'ÖMER GÜZEL', plaka: '45 HH 486/07 BZC 537', tc: '-', tel: '-', vn: '-', adres: '-' });
-        save('mk_uyeler', DB.uyeler);
-      }
+    // Alan ismi eşleştirme fonksiyonları (snake_case → camelCase/TR)
+    function mapUye(r) {
+      return { id: r.id, ad: r.ad, plaka: r.plaka, tc: r.tc, tel: r.tel, vn: r.vn, adres: r.adres };
+    }
+    function mapSefer(r) {
+      return { id: r.id, uyeId: r.uye_id, tarih: r.tarih, kalkis: r.kalkis, varis: r.varis, arac: r.arac, firma: r.firma, fiyat: Number(r.fiyat), tonaj: Number(r.tonaj || 0), durum: r.durum };
+    }
+    function mapGider(r) {
+      return { id: r.id, uyeId: r.uye_id, tarih: r.tarih, tur: r.tur, aciklama: r.aciklama, borc: Number(r.borc || 0), alacak: Number(r.alacak || 0), tutar: Number(r.tutar || 0), petrolId: r.petrol_id, otomatik: r.otomatik };
+    }
+    function mapFatura(r) {
+      return { id: r.id, uyeId: r.uye_id, tarih: r.tarih, seri: r.seri, sira: r.sira, aciklama: r.aciklama, tur: r.tur, matrah: Number(r.matrah || 0), kdvOran: Number(r.kdv_oran || 0), kdvTutar: Number(r.kdv_tutar || 0), toplam: Number(r.toplam || 0), senaryo: r.senaryo, vade: r.vade, irstar: r.irstar, irsno: r.irsno };
+    }
+    function mapPetrol(r) {
+      return { id: r.id, firma: r.firma, uyeId: r.uye_id, tarih: r.tarih, fis: r.fis, tutar: Number(r.tutar || 0), litre: Number(r.litre || 0), not: r.not };
+    }
+    function mapCek(r) {
+      return { id: r.id, tur: r.tur, uyeId: r.uye_id, petrolFirma: r.petrol_firma, tarih: r.tarih, vade: r.vade, banka: r.banka, cekNo: r.cek_no, tutar: Number(r.tutar || 0), aciklama: r.aciklama, durum: r.durum };
+    }
 
-      // 2- Eger Omer Guzel'in gider listesi bostaysa yukle
-      var hasOmerGider = DB.giderler.find(function (g) { return g.uyeId == 4; });
-      if (!hasOmerGider) {
-        // Devir hesabi (1.026.226,92)
-        DB.giderler.push({ id: 18, uyeId: 4, tarih: '01.01.2026', tur: 'Devir', aciklama: 'Devreden (Borç/Alacak eşitlendiği için bakiye 0 etki eder)', borc: 1026226.92, alacak: 1026226.92, tutar: 0 });
 
-        DB.giderler.push({ id: 19, uyeId: 4, tarih: '17.03.2026', tur: 'Tediye', aciklama: 'ATLI', tutar: 20413.30 });
-        DB.giderler.push({ id: 20, uyeId: 4, tarih: '18.03.2026', tur: 'Tediye', aciklama: 'POLINAS IST. KARSI *31411*EG', tutar: 430 });
-        DB.giderler.push({ id: 21, uyeId: 4, tarih: '19.03.2026', tur: 'Tediye', aciklama: 'ATLI', tutar: 3786.64 });
-        DB.giderler.push({ id: 22, uyeId: 4, tarih: '23.03.2026', tur: 'Tediye', aciklama: 'ATLI', tutar: 48465.45 });
-        DB.giderler.push({ id: 23, uyeId: 4, tarih: '25.03.2026', tur: 'Tediye', aciklama: 'ATLI', tutar: 11555.50 });
-        DB.giderler.push({ id: 24, uyeId: 4, tarih: '25.03.2026', tur: 'Tediye', aciklama: 'POLINAS IST. KARSI 2 YER *32343', tutar: 2280 });
-        DB.giderler.push({ id: 25, uyeId: 4, tarih: '25.03.2026', tur: 'Tediye', aciklama: 'GEMI', tutar: 5550 });
-        DB.giderler.push({ id: 26, uyeId: 4, tarih: '27.03.2026', tur: 'Tediye', aciklama: 'HOROZ AVCILAR *31052', tutar: 4130 });
-        save('mk_giderler', DB.giderler);
-        DB.faturalar.push({ id: 2, uyeId: 4, tarih: '25.03.2026', seri: 'OMR', sira: '202655', aciklama: 'POLINAS ISTANBUL', matrah: 74814.20, kdvOran: 0, kdvTutar: 0, toplam: 74814.20 });
-        save('mk_faturalar', DB.faturalar);
-      }
-      var hasOmerSefer = DB.seferler.find(function (s) { return s.uyeId == 4 && s.id == 9; });
-      if (!hasOmerSefer) {
-        DB.seferler.push({ id: 9, uyeId: 4, tarih: '18.03.2026', kalkis: 'MANİSA', varis: 'İSTANBUL *31411*EG', arac: 'Tır', firma: 'POLİNAS', fiyat: 430, tonaj: 20, durum: 'Tamamlandı' });
-        DB.seferler.push({ id: 11, uyeId: 4, tarih: '25.03.2026', kalkis: 'MANİSA', varis: 'İSTANBUL 2 YER *32343', arac: 'Tır', firma: 'POLİNAS', fiyat: 2280, tonaj: 20, durum: 'Tamamlandı' });
-        DB.seferler.push({ id: 12, uyeId: 4, tarih: '27.03.2026', kalkis: 'MANİSA', varis: 'AVCILAR *31052', arac: 'Tır', firma: 'HOROZ', fiyat: 4130, tonaj: 20, durum: 'Tamamlandı' });
-        save('mk_seferler', DB.seferler);
-      }
+    // ══════════════════════════════════════════════
+    //  SUPABASE CRUD YARDIMCILAR
+    // ══════════════════════════════════════════════
 
-      // CLEANUP: Faturayı seferler arasından temizle (Eğer tarayıcıya kaydolmuşsa)
-      var hFaturaIdx = DB.seferler.findIndex(function (s) { return s.uyeId == 4 && s.varis && s.varis.indexOf('OMR202655') > -1; });
-      if (hFaturaIdx > -1) {
-        DB.seferler.splice(hFaturaIdx, 1);
-        save('mk_seferler', DB.seferler);
-      }
-    })();
+    // saveAll artık yok — her işlem doğrudan Supabase'e yazılır
+    // Geriye dönük uyumluluk için boş fonksiyon:
+    function saveAll() { /* no-op: Supabase tabanlı */ }
+    function save(k, v) { /* no-op: Supabase tabanlı */ }
+    function load(k, def) { return def; }
+    function nid() { return Date.now() + Math.floor(Math.random() * 1000); }
 
-    // Veriyi sıfırla ve varsayılan veriyle yeniden yükle
-    function veriSifirla() {
-      if (!confirm('Tüm veriler silinip örnek verilerle yeniden yüklenecek. Emin misin?')) return;
-      ['mk_uyeler', 'mk_seferler', 'mk_giderler', 'mk_faturalar', 'mk_kamyonlar', 'mk_soforler', 'mk_yukler', 'mk_nid'].forEach(function (k) {
-        try { localStorage.removeItem(k); } catch (e) { }
-      });
-      showToast('Veriler sıfırlandı, yenileniyor...');
-      setTimeout(function () { location.reload(); }, 800);
+    // --- ÜYE KAYDET (Supabase INSERT) ---
+    async function sbUyeEkle(uye) {
+      var { data, error } = await sb.from('uyeler').insert({
+        ad: uye.ad, plaka: uye.plaka, tc: uye.tc, tel: uye.tel, vn: uye.vn, adres: uye.adres
+      }).select().single();
+      if (error) throw error;
+      return mapUye(data);
+    }
+
+    // --- ÜYE GÜNCELLE (Supabase UPDATE) ---
+    async function sbUyeGuncelle(uye) {
+      var { error } = await sb.from('uyeler').update({
+        ad: uye.ad, plaka: uye.plaka, tc: uye.tc, tel: uye.tel, vn: uye.vn, adres: uye.adres
+      }).eq('id', uye.id);
+      if (error) throw error;
+    }
+
+    // --- ÜYE SİL (Supabase DELETE) ---
+    async function sbUyeSil(id) {
+      var { error } = await sb.from('uyeler').delete().eq('id', id);
+      if (error) throw error;
+    }
+
+    // --- SEFER KAYDET (Supabase INSERT) ---
+    async function sbSeferEkle(sefer) {
+      var { data, error } = await sb.from('seferler').insert({
+        uye_id: sefer.uyeId, tarih: sefer.tarih, kalkis: sefer.kalkis,
+        varis: sefer.varis, arac: sefer.arac, firma: sefer.firma,
+        fiyat: sefer.fiyat, tonaj: sefer.tonaj, durum: sefer.durum
+      }).select().single();
+      if (error) throw error;
+      return mapSefer(data);
+    }
+
+    // --- SEFER GÜNCELLE (Supabase UPDATE) ---
+    async function sbSeferGuncelle(sefer) {
+      var { error } = await sb.from('seferler').update({
+        uye_id: sefer.uyeId, tarih: sefer.tarih, kalkis: sefer.kalkis,
+        varis: sefer.varis, arac: sefer.arac, firma: sefer.firma,
+        fiyat: sefer.fiyat, tonaj: sefer.tonaj, durum: sefer.durum
+      }).eq('id', sefer.id);
+      if (error) throw error;
+    }
+
+    // --- SEFER SİL (Supabase DELETE) ---
+    async function sbSeferSil(id) {
+      var { error } = await sb.from('seferler').delete().eq('id', id);
+      if (error) throw error;
+    }
+
+    // --- GİDER KAYDET (Supabase INSERT) ---
+    async function sbGiderEkle(g) {
+      var { data, error } = await sb.from('giderler').insert({
+        uye_id: g.uyeId, tarih: g.tarih, tur: g.tur, aciklama: g.aciklama,
+        borc: g.borc || 0, alacak: g.alacak || 0, tutar: g.tutar || 0,
+        petrol_id: g.petrolId || null, otomatik: g.otomatik || false
+      }).select().single();
+      if (error) throw error;
+      return mapGider(data);
+    }
+
+    // --- GİDER GÜNCELLE (Supabase UPDATE) ---
+    async function sbGiderGuncelle(g) {
+      var { error } = await sb.from('giderler').update({
+        tarih: g.tarih, tur: g.tur, aciklama: g.aciklama,
+        borc: g.borc || 0, alacak: g.alacak || 0, tutar: g.tutar || 0
+      }).eq('id', g.id);
+      if (error) throw error;
+    }
+
+    // --- GİDER SİL (Supabase DELETE) ---
+    async function sbGiderSil(id) {
+      var { error } = await sb.from('giderler').delete().eq('id', id);
+      if (error) throw error;
+    }
+
+    // --- FATURA KAYDET (Supabase INSERT) ---
+    async function sbFaturaEkle(f) {
+      var { data, error } = await sb.from('faturalar').insert({
+        uye_id: f.uyeId, tarih: f.tarih, seri: f.seri, sira: f.sira, aciklama: f.aciklama,
+        tur: f.tur, matrah: f.matrah, kdv_oran: f.kdvOran, kdv_tutar: f.kdvTutar, toplam: f.toplam,
+        senaryo: f.senaryo, vade: f.vade, irstar: f.irstar, irsno: f.irsno
+      }).select().single();
+      if (error) throw error;
+      return mapFatura(data);
+    }
+
+    // --- FATURA GÜNCELLE (Supabase UPDATE) ---
+    async function sbFaturaGuncelle(f) {
+      var { error } = await sb.from('faturalar').update({
+        tarih: f.tarih, seri: f.seri, sira: f.sira, aciklama: f.aciklama,
+        tur: f.tur, matrah: f.matrah, kdv_oran: f.kdvOran, kdv_tutar: f.kdvTutar, toplam: f.toplam,
+        senaryo: f.senaryo, vade: f.vade, irstar: f.irstar, irsno: f.irsno
+      }).eq('id', f.id);
+      if (error) throw error;
+    }
+
+    // --- FATURA SİL (Supabase DELETE) ---
+    async function sbFaturaSil(id) {
+      var { error } = await sb.from('faturalar').delete().eq('id', id);
+      if (error) throw error;
+    }
+
+    // --- PETROL KAYDET (Supabase INSERT) ---
+    async function sbPetrolEkle(p) {
+      var { data, error } = await sb.from('petrol').insert({
+        firma: p.firma, uye_id: p.uyeId, tarih: p.tarih,
+        fis: p.fis, tutar: p.tutar, litre: p.litre || 0, not: p.not || ''
+      }).select().single();
+      if (error) throw error;
+      return mapPetrol(data);
+    }
+
+    // --- PETROL GÜNCELLE (Supabase UPDATE) ---
+    async function sbPetrolGuncelle(p) {
+      var { error } = await sb.from('petrol').update({
+        firma: p.firma, uye_id: p.uyeId, tarih: p.tarih,
+        fis: p.fis, tutar: p.tutar, litre: p.litre || 0, not: p.not || ''
+      }).eq('id', p.id);
+      if (error) throw error;
+    }
+
+    // --- PETROL SİL (Supabase DELETE) ---
+    async function sbPetrolSil(id) {
+      var { error } = await sb.from('petrol').delete().eq('id', id);
+      if (error) throw error;
+    }
+
+    // --- CEK KAYDET (Supabase INSERT) ---
+    async function sbCekEkle(c) {
+      var { data, error } = await sb.from('cekler').insert({
+        tur: c.tur, uye_id: c.uyeId || null, petrol_firma: c.petrolFirma || null,
+        tarih: c.tarih, vade: c.vade, banka: c.banka, cek_no: c.cekNo,
+        tutar: c.tutar, aciklama: c.aciklama, durum: c.durum
+      }).select().single();
+      if (error) throw error;
+      return mapCek(data);
+    }
+
+    // --- CEK GÜNCELLE (Supabase UPDATE) ---
+    async function sbCekGuncelle(c) {
+      var { error } = await sb.from('cekler').update({
+        tur: c.tur, uye_id: c.uyeId || null, petrol_firma: c.petrolFirma || null,
+        tarih: c.tarih, vade: c.vade, banka: c.banka, cek_no: c.cekNo,
+        tutar: c.tutar, aciklama: c.aciklama, durum: c.durum
+      }).eq('id', c.id);
+      if (error) throw error;
+    }
+
+    // --- CEK SİL (Supabase DELETE) ---
+    async function sbCekSil(id) {
+      var { error } = await sb.from('cekler').delete().eq('id', id);
+      if (error) throw error;
+    }
+
+    // --- KAMYON KAYDET (Supabase INSERT) ---
+    async function sbKamyonEkle(k) {
+      var { data, error } = await sb.from('kamyonlar').insert(k).select().single();
+      if (error) throw error;
+      return data;
+    }
+    async function sbKamyonSil(id) {
+      var { error } = await sb.from('kamyonlar').delete().eq('id', id);
+      if (error) throw error;
+    }
+
+    // --- SOFOR KAYDET (Supabase INSERT) ---
+    async function sbSoforEkle(s) {
+      var { data, error } = await sb.from('soforler').insert(s).select().single();
+      if (error) throw error;
+      return data;
+    }
+    async function sbSoforSil(id) {
+      var { error } = await sb.from('soforler').delete().eq('id', id);
+      if (error) throw error;
+    }
+
+    // --- YUK KAYDET (Supabase INSERT) ---
+    async function sbYukEkle(y) {
+      var { data, error } = await sb.from('yukler').insert(y).select().single();
+      if (error) throw error;
+      return data;
+    }
+    async function sbYukSil(id) {
+      var { error } = await sb.from('yukler').delete().eq('id', id);
+      if (error) throw error;
     }
 
     // ══════════════════════════════════════════════
@@ -5008,7 +5119,7 @@
       if (labelEl) labelEl.textContent = tur === 'verilen' ? 'Kime (Alici)' : 'Kimden (Gonderen)';
     }
 
-    function cekKaydet() {
+    async function cekKaydet() {
       var editId = document.getElementById('cek-edit-id').value;
       var tur = document.getElementById('cek-tur').value;
       var tarihVal = document.getElementById('cek-tarih').value;
@@ -5026,28 +5137,34 @@
       var tarih = toTR(tarihVal);
       var vade = toTR(vadeVal);
 
-      if (editId) {
-        var idx = DB.cekler.findIndex(function (c) { return c.id === parseInt(editId); });
-        if (idx > -1) {
-          DB.cekler[idx].tur = tur;
-          DB.cekler[idx].tarih = tarih;
-          DB.cekler[idx].vade = vade;
-          DB.cekler[idx].uyeId = uyeId;
-          DB.cekler[idx].banka = banka;
-          DB.cekler[idx].cekNo = cekNo;
-          DB.cekler[idx].tutar = tutar;
-          DB.cekler[idx].aciklama = aciklama;
-          DB.cekler[idx].durum = durum;
+      try {
+        if (editId) {
+          var idx = DB.cekler.findIndex(function (c) { return c.id === parseInt(editId); });
+          if (idx > -1) {
+            DB.cekler[idx].tur = tur;
+            DB.cekler[idx].tarih = tarih;
+            DB.cekler[idx].vade = vade;
+            DB.cekler[idx].uyeId = uyeId;
+            DB.cekler[idx].banka = banka;
+            DB.cekler[idx].cekNo = cekNo;
+            DB.cekler[idx].tutar = tutar;
+            DB.cekler[idx].aciklama = aciklama;
+            DB.cekler[idx].durum = durum;
+            await sbCekGuncelle(DB.cekler[idx]);
+          }
+          showToast('Cek guncellendi');
+        } else {
+          var newObj = { tur: tur, uyeId: uyeId, tarih: tarih, vade: vade, banka: banka, cekNo: cekNo, tutar: tutar, aciklama: aciklama, durum: durum };
+          var created = await sbCekEkle(newObj);
+          DB.cekler.push(created);
+          showToast('Cek eklendi');
         }
-        showToast('Cek guncellendi');
-      } else {
-        DB.cekler.push({ id: nid(), tur: tur, uyeId: uyeId, tarih: tarih, vade: vade, banka: banka, cekNo: cekNo, tutar: tutar, aciklama: aciklama, durum: durum });
-        showToast('Cek eklendi');
-      }
 
-      saveAll();
-      closeModal('m-cek');
-      renderCekler();
+        closeModal('m-cek');
+        renderCekler();
+      } catch (e) {
+        showToast('Hata: ' + e.message, 'error');
+      }
     }
 
     function cekDuzenle(id) {
@@ -5078,12 +5195,16 @@
       openModal('m-cek');
     }
 
-    function cekSil(id) {
+    async function cekSil(id) {
       if (!confirm('Bu ceki silmek istediginizden emin misiniz?')) return;
-      DB.cekler = DB.cekler.filter(function (c) { return c.id !== id; });
-      saveAll();
-      renderCekler();
-      showToast('Cek silindi');
+      try {
+        await sbCekSil(id);
+        DB.cekler = DB.cekler.filter(function (c) { return c.id !== id; });
+        renderCekler();
+        showToast('Cek silindi');
+      } catch (e) {
+        showToast('Hata: ' + e.message, 'error');
+      }
     }
 
     // ══════════════════════════════════════════════
@@ -5139,17 +5260,22 @@
       if (taraf === 'borc') { var el = document.getElementById('g-alacak'); if (el) el.value = ''; }
       else { var el2 = document.getElementById('g-borc'); if (el2) el2.value = ''; }
     }
-    function giderKaydet() {
+    async function giderKaydet() {
       var tar = document.getElementById('g-tarih').value.split('-').reverse().join('.');
       var borc = parseFloat(document.getElementById('g-borc').value) || 0;
       var alacak = parseFloat(document.getElementById('g-alacak').value) || 0;
       if (!borc && !alacak) { showToast('Borç veya Alacak tutarı giriniz', 'error'); return; }
-      // geriye dönük uyumluluk: tutar = borç-alacak (net gider)
-      DB.giderler.push({ id: nid(), uyeId: selUyeId, tarih: tar, tur: document.getElementById('g-tur').value, aciklama: document.getElementById('g-aciklama').value || document.getElementById('g-tur').value, borc: borc, alacak: alacak, tutar: borc - alacak });
-      saveAll(); closeModal('m-gider');
-      document.getElementById('g-borc').value = '';
-      document.getElementById('g-alacak').value = '';
-      renderCariTab(); showToast('Kayıt eklendi');
+      try {
+        var newGider = { uyeId: selUyeId, tarih: tar, tur: document.getElementById('g-tur').value, aciklama: document.getElementById('g-aciklama').value || document.getElementById('g-tur').value, borc: borc, alacak: alacak, tutar: borc - alacak };
+        var created = await sbGiderEkle(newGider);
+        DB.giderler.push(created);
+        closeModal('m-gider');
+        document.getElementById('g-borc').value = '';
+        document.getElementById('g-alacak').value = '';
+        renderCariTab(); showToast('Kayıt eklendi');
+      } catch (e) {
+        showToast('Hata: ' + e.message, 'error');
+      }
     }
 
     function buildCariRowsWithBalance() {
@@ -5502,7 +5628,7 @@
       overlay.classList.add('open');
     }
 
-    function cdmSeferKaydet() {
+    async function cdmSeferKaydet() {
       var id = _cdmCurrentId;
       var idx = DB.seferler.findIndex(function (s) { return s.id == id; });
       if (idx === -1) { showToast('Kayıt bulunamadı', 'error'); return; }
@@ -5515,19 +5641,27 @@
       var firma = document.getElementById('cdm-s-firma');
       var arac = document.getElementById('cdm-s-arac');
       var durum = document.getElementById('cdm-s-durum');
-      DB.seferler[idx].tarih = tar;
-      if (kal) DB.seferler[idx].kalkis = kal.value.toUpperCase();
-      if (var_) DB.seferler[idx].varis = var_.value.toUpperCase();
-      if (fiy) DB.seferler[idx].fiyat = parseFloat(fiy.value) || 0;
-      if (ton) DB.seferler[idx].tonaj = parseFloat(ton.value) || 0;
-      if (firma) DB.seferler[idx].firma = firma.value;
-      if (arac) DB.seferler[idx].arac = arac.value;
-      if (durum) DB.seferler[idx].durum = durum.value;
-      saveAll(); closeCariDetay(); renderCariTab(); renderSeferTab(); renderSeferlerPage();
-      showToast('Sefer güncellendi ✅');
+
+      try {
+        DB.seferler[idx].tarih = tar;
+        if (kal) DB.seferler[idx].kalkis = kal.value.toUpperCase();
+        if (var_) DB.seferler[idx].varis = var_.value.toUpperCase();
+        if (fiy) DB.seferler[idx].fiyat = parseFloat(fiy.value) || 0;
+        if (ton) DB.seferler[idx].tonaj = parseFloat(ton.value) || 0;
+        if (firma) DB.seferler[idx].firma = firma.value;
+        if (arac) DB.seferler[idx].arac = arac.value;
+        if (durum) DB.seferler[idx].durum = durum.value;
+
+        await sbSeferGuncelle(DB.seferler[idx]);
+
+        closeCariDetay(); renderCariTab(); renderSeferTab(); renderSeferlerPage();
+        showToast('Sefer güncellendi ✅');
+      } catch (e) {
+        showToast('Hata: ' + e.message, 'error');
+      }
     }
 
-    function cdmGiderKaydet() {
+    async function cdmGiderKaydet() {
       var id = _cdmCurrentId;
       var idx = DB.giderler.findIndex(function (g) { return g.id == id; });
       if (idx === -1) { showToast('Kayıt bulunamadı', 'error'); return; }
@@ -5539,28 +5673,37 @@
       var acEl = document.getElementById('cdm-g-aciklama');
       var borc = bEl ? parseFloat(bEl.value) || 0 : DB.giderler[idx].borc || 0;
       var alacak = aEl ? parseFloat(aEl.value) || 0 : DB.giderler[idx].alacak || 0;
-      DB.giderler[idx].tarih = tar;
-      if (turEl) DB.giderler[idx].tur = turEl.value;
-      DB.giderler[idx].borc = borc;
-      DB.giderler[idx].alacak = alacak;
-      DB.giderler[idx].tutar = borc - alacak;
-      if (acEl) DB.giderler[idx].aciklama = acEl.value;
-      // Mazot ise petrol tablosunu da güncelle
-      var petrolId = DB.giderler[idx].petrolId;
-      if (petrolId) {
-        var pi = DB.petrol.findIndex(function (p) { return p.id == petrolId; });
-        if (pi > -1) {
-          var fisEl = document.getElementById('cdm-p-fis');
-          var litEl = document.getElementById('cdm-p-litre');
-          var notEl = document.getElementById('cdm-p-not');
-          if (fisEl) DB.petrol[pi].fis = fisEl.value;
-          if (litEl) DB.petrol[pi].litre = parseFloat(litEl.value) || 0;
-          DB.petrol[pi].tutar = borc;
-          if (notEl) DB.petrol[pi].not = notEl.value;
+
+      try {
+        DB.giderler[idx].tarih = tar;
+        if (turEl) DB.giderler[idx].tur = turEl.value;
+        DB.giderler[idx].borc = borc;
+        DB.giderler[idx].alacak = alacak;
+        DB.giderler[idx].tutar = borc - alacak;
+        if (acEl) DB.giderler[idx].aciklama = acEl.value;
+
+        await sbGiderGuncelle(DB.giderler[idx]);
+
+        // Mazot ise petrol tablosunu da güncelle
+        var petrolId = DB.giderler[idx].petrolId;
+        if (petrolId) {
+          var pi = DB.petrol.findIndex(function (p) { return p.id == petrolId; });
+          if (pi > -1) {
+            var fisEl = document.getElementById('cdm-p-fis');
+            var litEl = document.getElementById('cdm-p-litre');
+            var notEl = document.getElementById('cdm-p-not');
+            if (fisEl) DB.petrol[pi].fis = fisEl.value;
+            if (litEl) DB.petrol[pi].litre = parseFloat(litEl.value) || 0;
+            DB.petrol[pi].tutar = borc;
+            if (notEl) DB.petrol[pi].not = notEl.value;
+            await sbPetrolGuncelle(DB.petrol[pi]);
+          }
         }
+        closeCariDetay(); renderCariTab();
+        showToast('Kayıt güncellendi ✅');
+      } catch (e) {
+        showToast('Hata: ' + e.message, 'error');
       }
-      saveAll(); closeCariDetay(); renderCariTab();
-      showToast('Kayıt güncellendi ✅');
     }
 
 
@@ -5778,7 +5921,7 @@
       openModal('m-islem-edit');
     }
 
-    function islemGuncelle() {
+    async function islemGuncelle() {
       var id = parseInt(document.getElementById('ie-id').value);
       var type = document.getElementById('ie-type').value;
       var tarihVal = document.getElementById('ie-tarih').value;
@@ -5791,55 +5934,75 @@
       var d = new Date(tarihVal);
       var tarih = ('0' + d.getDate()).slice(-2) + '.' + ('0' + (d.getMonth() + 1)).slice(-2) + '.' + d.getFullYear();
 
-      if (type === 'gider') {
-        var idx = DB.giderler.findIndex(function (g) { return g.id === id; });
-        if (idx > -1) {
-          DB.giderler[idx].tarih = tarih;
-          DB.giderler[idx].tur = tur;
-          DB.giderler[idx].aciklama = aciklama;
-          DB.giderler[idx].borc = borc;
-          DB.giderler[idx].alacak = alacak;
-          DB.giderler[idx].tutar = borc - alacak;
-        }
-      } else if (type === 'sefer') {
-        var idx = DB.seferler.findIndex(function (s) { return s.id === id; });
-        if (idx > -1) {
-          DB.seferler[idx].tarih = tarih;
-          DB.seferler[idx].fiyat = alacak;
-          // Aciklamayi parse et (Kalkis - Varis formatinda)
-          var parts = aciklama.split(' - ');
-          if (parts.length >= 2) {
-            DB.seferler[idx].kalkis = parts[0].trim();
-            var varisAndFirma = parts[1].split('(');
-            DB.seferler[idx].varis = varisAndFirma[0].trim();
+      try {
+        if (type === 'gider') {
+          var idx = DB.giderler.findIndex(function (g) { return g.id === id; });
+          if (idx > -1) {
+            DB.giderler[idx].tarih = tarih;
+            DB.giderler[idx].tur = tur;
+            DB.giderler[idx].aciklama = aciklama;
+            DB.giderler[idx].borc = borc;
+            DB.giderler[idx].alacak = alacak;
+            DB.giderler[idx].tutar = borc - alacak;
+            await sbGiderGuncelle(DB.giderler[idx]);
+          }
+        } else if (type === 'sefer') {
+          var idx = DB.seferler.findIndex(function (s) { return s.id === id; });
+          if (idx > -1) {
+            DB.seferler[idx].tarih = tarih;
+            DB.seferler[idx].fiyat = alacak;
+            var parts = aciklama.split(' - ');
+            if (parts.length >= 2) {
+              DB.seferler[idx].kalkis = parts[0].trim();
+              var varisAndFirma = parts[1].split('(');
+              DB.seferler[idx].varis = varisAndFirma[0].trim();
+            }
+            await sbSeferGuncelle(DB.seferler[idx]);
+          }
+        } else if (type === 'fatura') {
+          var idx = DB.faturalar.findIndex(function (f) { return f.id === id; });
+          if (idx > -1) {
+            DB.faturalar[idx].tarih = tarih;
+            DB.faturalar[idx].aciklama = aciklama;
+            DB.faturalar[idx].toplam = borc;
+            // Matrah ve KDV yeniden hesapla (varsayilan %20 KDV)
+            var kdvOran = DB.faturalar[idx].kdvOran || 20;
+            DB.faturalar[idx].matrah = Math.round(borc / (1 + kdvOran / 100) * 100) / 100;
+            DB.faturalar[idx].kdvTutar = borc - DB.faturalar[idx].matrah;
+            await sbFaturaGuncelle(DB.faturalar[idx]);
           }
         }
-      } else if (type === 'fatura') {
-        var idx = DB.faturalar.findIndex(function (f) { return f.id === id; });
-        if (idx > -1) {
-          DB.faturalar[idx].tarih = tarih;
-          DB.faturalar[idx].aciklama = aciklama;
-          DB.faturalar[idx].toplam = borc;
-          // Matrah ve KDV yeniden hesapla (varsayilan %20 KDV)
-          var kdvOran = DB.faturalar[idx].kdvOran || 20;
-          DB.faturalar[idx].matrah = Math.round(borc / (1 + kdvOran / 100) * 100) / 100;
-          DB.faturalar[idx].kdvTutar = borc - DB.faturalar[idx].matrah;
-        }
-      }
 
-      saveAll();
-      closeModal('m-islem-edit');
-      renderCariTab();
-      renderSeferTab();
-      renderFaturaTab();
-      showToast('Islem guncellendi');
+        closeModal('m-islem-edit');
+        renderCariTab();
+        renderSeferTab();
+        renderFaturaTab();
+        showToast('Islem guncellendi');
+      } catch (e) {
+        showToast('Hata: ' + e.message, 'error');
+      }
     }
-    function delSefer(id) { DB.seferler = DB.seferler.filter(function (s) { return s.id !== id; }); saveAll(); renderSeferTab(); renderCariTab(); showToast('Sefer silindi'); }
-    function delFatura(id) { DB.faturalar = DB.faturalar.filter(function (f) { return f.id !== id; }); saveAll(); renderFaturaTab(); renderCariTab(); showToast('Fatura silindi'); }
+
+    async function delSefer(id) {
+      if (!confirm("Silmek istediğinize emin misiniz?")) return;
+      try {
+        await sbSeferSil(id);
+        DB.seferler = DB.seferler.filter(function (s) { return s.id !== id; });
+        renderSeferTab(); renderCariTab(); showToast('Sefer silindi');
+      } catch (e) { showToast('Hata: ' + e.message, 'error'); }
+    }
+    async function delFatura(id) {
+      if (!confirm("Silmek istediğinize emin misiniz?")) return;
+      try {
+        await sbFaturaSil(id);
+        DB.faturalar = DB.faturalar.filter(function (f) { return f.id !== id; });
+        renderFaturaTab(); renderCariTab(); showToast('Fatura silindi');
+      } catch (e) { showToast('Hata: ' + e.message, 'error'); }
+    }
 
     // KAYDET
     function fillSeferUyeSelect() { var s = document.getElementById('s-uye'); s.innerHTML = DB.uyeler.map(function (u) { return '<option value="' + u.id + '">' + u.ad + ' (' + u.plaka + ')</option>'; }).join(''); }
-    function seferKaydet() {
+    async function seferKaydet() {
       var uid = parseInt(document.getElementById('s-uye').value);
       var tar = document.getElementById('s-tarih').value;
       var tar2 = tar.split('-').reverse().join('.');
@@ -5847,19 +6010,32 @@
       var var_ = document.getElementById('s-varis').value.trim().toUpperCase();
       var fiy = parseFloat(document.getElementById('s-fiyat').value) || 0;
       if (!kal || !var_ || !fiy) { showToast('Güzergah ve fiyat zorunlu', 'error'); return; }
-      var seferId = nid();
-      DB.seferler.push({ id: seferId, uyeId: uid, tarih: tar2, kalkis: kal, varis: var_, arac: document.getElementById('s-arac').value, firma: document.getElementById('s-firma').value, fiyat: fiy, tonaj: parseFloat(document.getElementById('s-tonaj').value) || 0, durum: document.getElementById('s-durum').value });
-      // Otomatik 430 TL sigorta borcu
-      DB.giderler.push({ id: nid(), uyeId: uid, tarih: tar2, tur: 'Sigorta', aciklama: 'Sigorta (' + kal + ' → ' + var_ + ')', borc: 430, alacak: 0, tutar: 430, otomatik: true });
-      saveAll(); closeModal('m-sefer'); renderUyeler(); renderSeferlerPage(); showToast('Sefer eklendi — 430 ₺ sigorta işlendi');
+
+      try {
+        var createdSefer = await sbSeferEkle({ uyeId: uid, tarih: tar2, kalkis: kal, varis: var_, arac: document.getElementById('s-arac').value, firma: document.getElementById('s-firma').value, fiyat: fiy, tonaj: parseFloat(document.getElementById('s-tonaj').value) || 0, durum: document.getElementById('s-durum').value });
+        DB.seferler.push(createdSefer);
+        // Otomatik 430 TL sigorta borcu
+        var createdGider = await sbGiderEkle({ uyeId: uid, tarih: tar2, tur: 'Sigorta', aciklama: 'Sigorta (' + kal + ' → ' + var_ + ')', borc: 430, alacak: 0, tutar: 430, otomatik: true });
+        DB.giderler.push(createdGider);
+        closeModal('m-sefer'); renderUyeler(); renderSeferlerPage(); showToast('Sefer eklendi — 430 ₺ sigorta işlendi');
+      } catch (e) {
+        showToast('Hata: ' + e.message, 'error');
+      }
     }
-    function uyeKaydet() {
+
+    async function uyeKaydet() {
       var ad = document.getElementById('u-ad').value.trim().toUpperCase();
       var pl = document.getElementById('u-plaka').value.trim().toUpperCase();
       if (!ad || !pl) { showToast('Ad ve plaka zorunlu', 'error'); return; }
-      DB.uyeler.push({ id: nid(), ad: ad, plaka: pl, tc: document.getElementById('u-tc').value, tel: document.getElementById('u-tel').value, vn: document.getElementById('u-vn').value, adres: document.getElementById('u-adres').value });
-      saveAll(); closeModal('m-uye'); renderUyeler(); var nbu = document.getElementById('nb-uyeler'); if (nbu) nbu.textContent = DB.uyeler.length; showToast('Üye eklendi');
+      try {
+        var createdUye = await sbUyeEkle({ ad: ad, plaka: pl, tc: document.getElementById('u-tc').value, tel: document.getElementById('u-tel').value, vn: document.getElementById('u-vn').value, adres: document.getElementById('u-adres').value });
+        DB.uyeler.push(createdUye);
+        closeModal('m-uye'); renderUyeler(); var nbu = document.getElementById('nb-uyeler'); if (nbu) nbu.textContent = DB.uyeler.length; showToast('Üye eklendi');
+      } catch (e) {
+        showToast('Hata: ' + e.message, 'error');
+      }
     }
+
     function giderTurDegis() {
       var tur = document.getElementById('g-tur').value;
       var el = document.getElementById('g-tur-aciklama');
@@ -5874,20 +6050,14 @@
       };
       el.textContent = map[tur] || '';
     }
+
     function giderTarafKontrol(taraf) {
       if (taraf === 'borc') { var el = document.getElementById('g-alacak'); if (el) el.value = ''; }
       else { var el2 = document.getElementById('g-borc'); if (el2) el2.value = ''; }
     }
-    function giderKaydet() {
-      var tar = document.getElementById('g-tarih').value.split('-').reverse().join('.');
-      var borc = parseFloat(document.getElementById('g-borc').value) || 0;
-      var alacak = parseFloat(document.getElementById('g-alacak').value) || 0;
-      if (!borc && !alacak) { showToast('Borç veya Alacak tutarı giriniz', 'error'); return; }
-      DB.giderler.push({ id: nid(), uyeId: selUyeId, tarih: tar, tur: document.getElementById('g-tur').value, aciklama: document.getElementById('g-aciklama').value || document.getElementById('g-tur').value, borc: borc, alacak: alacak, tutar: borc - alacak });
-      saveAll(); closeModal('m-gider');
-      document.getElementById('g-borc').value = '';
-      document.getElementById('g-alacak').value = '';
-      renderCariTab(); showToast('Kayıt eklendi');
+
+    async function giderKaydet2() { // the second instance of giderKaydet -> redirect to original
+      await giderKaydet();
     }
     function fillFaturaInfo() {
       var u = DB.uyeler.find(function (x) { return x.id == selUyeId; });
@@ -5924,7 +6094,7 @@
       var tur = turEl ? turEl.value : '';
       if (errEl) errEl.style.display = (tur === 'SATIŞ' && m > 10000) ? 'flex' : 'none';
     }
-    function faturaKaydet() {
+    async function faturaKaydet() {
       var matEl = document.getElementById('f-matrah');
       var kdvEl = document.getElementById('f-kdvoran');
       var turEl = document.getElementById('f-tur');
@@ -5948,8 +6118,8 @@
 
       var obj = {
         uyeId: selUyeId, tarih: tar,
-        seri: document.getElementById('f-seri').value || 'GIB2026',
-        sira: document.getElementById('f-sira').value || String(nid()),
+        seri: document.getElementById('f-seri').value || 'GIB',
+        sira: document.getElementById('f-sira').value || '',
         aciklama: document.getElementById('f-aciklama').value,
         tur: tur, matrah: m, kdvOran: k, kdvTutar: m * k / 100, toplam: m + m * k / 100,
         senaryo: document.getElementById('f-senaryo').value || 'TEMEL FATURA',
@@ -5958,15 +6128,21 @@
         irsno: document.getElementById('f-irsno').value || ''
       };
 
-      if (editId) {
-        var idx = DB.faturalar.findIndex(function (f) { return String(f.id) === String(editId); });
-        if (idx > -1) { obj.id = DB.faturalar[idx].id; DB.faturalar[idx] = obj; }
-        saveAll(); closeModal('m-fatura'); renderFaturaTab(); renderCariTab(); showToast('Fatura güncellendi ✏️');
-      } else {
-        obj.id = nid();
-        DB.faturalar.push(obj);
-        saveAll(); closeModal('m-fatura'); renderFaturaTab(); renderCariTab(); showToast('Fatura kaydedildi');
-      }
+      try {
+        if (editId) {
+          var idx = DB.faturalar.findIndex(function (f) { return String(f.id) === String(editId); });
+          if (idx > -1) {
+            obj.id = DB.faturalar[idx].id;
+            DB.faturalar[idx] = obj;
+            await sbFaturaGuncelle(obj);
+          }
+          closeModal('m-fatura'); renderFaturaTab(); renderCariTab(); showToast('Fatura güncellendi ✏️');
+        } else {
+          var createdFatura = await sbFaturaEkle(obj);
+          DB.faturalar.push(createdFatura);
+          closeModal('m-fatura'); renderFaturaTab(); renderCariTab(); showToast('Fatura kaydedildi');
+        }
+      } catch (e) { showToast('Hata: ' + e.message, 'error'); }
     }
 
     function faturaEdit(id) {
@@ -6074,7 +6250,14 @@
 
       el.innerHTML = '<table><thead><tr><th>Tarih</th><th>Üye</th><th>Güzergah</th><th>Firma</th><th>Araç</th><th style="text-align:right">Tonaj</th><th>Durum</th><th style="text-align:right">Ücret</th><th></th></tr></thead><tbody>' + trs + '</tbody></table>';
     }
-    function delSeferG(id) { DB.seferler = DB.seferler.filter(function (s) { return s.id !== id; }); saveAll(); renderSeferlerPage(); showToast('Sefer silindi'); }
+    async function delSeferG(id) {
+      if (!confirm("Emin misiniz?")) return;
+      try {
+        await sbSeferSil(id);
+        DB.seferler = DB.seferler.filter(function (s) { return s.id !== id; });
+        renderSeferlerPage(); showToast('Sefer silindi');
+      } catch (e) { showToast('Hata: ' + e.message, 'error'); }
+    }
 
     // ══════════════════════════════════════════════
     //  YÜKLER
@@ -6088,13 +6271,24 @@
       }).join('') : '<tr><td colspan="7"><div class="empty"><div class="empty-ico">📦</div><div class="empty-txt">Yük kaydı yok</div></div></td></tr>';
       el.innerHTML = '<table><thead><tr><th>Tarih</th><th>Yük</th><th>Tonaj</th><th>Gönderici</th><th>Alıcı</th><th>Durum</th><th></th></tr></thead><tbody>' + trs + '</tbody></table>';
     }
-    function delYuk(id) { DB.yukler = DB.yukler.filter(function (y) { return y.id !== id; }); saveAll(); renderYukler(); showToast('Yük silindi'); }
-    function yukKaydet() {
+    async function delYuk(id) {
+      if (!confirm("Emin misiniz?")) return;
+      try {
+        await sbYukSil(id);
+        DB.yukler = DB.yukler.filter(function (y) { return y.id !== id; });
+        renderYukler(); showToast('Yük silindi');
+      } catch (e) { showToast('Hata: ' + e.message, 'error'); }
+    }
+
+    async function yukKaydet() {
       var ad = document.getElementById('y-ad').value.trim();
       if (!ad) { showToast('Yük adı zorunlu', 'error'); return; }
       var tar = document.getElementById('y-tarih').value.split('-').reverse().join('.');
-      DB.yukler.push({ id: nid(), ad: ad, tonaj: parseFloat(document.getElementById('y-tonaj').value) || 0, gon: document.getElementById('y-gon').value, alici: document.getElementById('y-alici').value, tarih: tar, durum: document.getElementById('y-durum').value });
-      saveAll(); closeModal('m-yuk'); renderYukler(); showToast('Yük eklendi');
+      try {
+        var obj = await sbYukEkle({ ad: ad, tonaj: parseFloat(document.getElementById('y-tonaj').value) || 0, gon: document.getElementById('y-gon').value, alici: document.getElementById('y-alici').value, tarih: tar, durum: document.getElementById('y-durum').value });
+        DB.yukler.push(obj);
+        closeModal('m-yuk'); renderYukler(); showToast('Yük eklendi');
+      } catch (e) { showToast('Hata: ' + e.message, 'error'); }
     }
 
     // ══════════════════════════════════════════════
@@ -6115,12 +6309,22 @@
       }).join('');
       document.getElementById('kamyon-tablo').innerHTML = '<table><thead><tr><th>Plaka</th><th>Marka/Model</th><th>Tip</th><th>Yıl</th><th>Ruhsat Bitiş</th><th>Sigorta Bitiş</th><th>Durum</th><th></th></tr></thead><tbody>' + trs + '</tbody></table>';
     }
-    function delKamyon(id) { DB.kamyonlar = DB.kamyonlar.filter(function (k) { return k.id !== id; }); saveAll(); renderKamyonlar(); showToast('Araç silindi'); }
-    function kamyonKaydet() {
+    async function delKamyon(id) {
+      if (!confirm("Emin misiniz?")) return;
+      try {
+        await sbKamyonSil(id);
+        DB.kamyonlar = DB.kamyonlar.filter(function (k) { return k.id !== id; });
+        renderKamyonlar(); showToast('Araç silindi');
+      } catch (e) { showToast('Hata: ' + e.message, 'error'); }
+    }
+    async function kamyonKaydet() {
       var pl = document.getElementById('k-plaka').value.trim().toUpperCase();
       if (!pl) { showToast('Plaka zorunlu', 'error'); return; }
-      DB.kamyonlar.push({ id: nid(), plaka: pl, marka: document.getElementById('k-marka').value, tip: document.getElementById('k-tip').value, yil: document.getElementById('k-yil').value, ruhsat: document.getElementById('k-ruhsat').value.split('-').reverse().join('.'), sigorta: document.getElementById('k-sigorta').value.split('-').reverse().join('.'), durum: 'Aktif' });
-      saveAll(); closeModal('m-kamyon'); renderKamyonlar(); showToast('Araç eklendi');
+      try {
+        var obj = await sbKamyonEkle({ plaka: pl, marka: document.getElementById('k-marka').value, tip: document.getElementById('k-tip').value, yil: document.getElementById('k-yil').value, ruhsat: document.getElementById('k-ruhsat').value.split('-').reverse().join('.'), sigorta: document.getElementById('k-sigorta').value.split('-').reverse().join('.'), durum: 'Aktif' });
+        DB.kamyonlar.push(obj);
+        closeModal('m-kamyon'); renderKamyonlar(); showToast('Araç eklendi');
+      } catch (e) { showToast('Hata: ' + e.message, 'error'); }
     }
 
     // ══════════════════════════════════════════════
@@ -6135,12 +6339,22 @@
       }).join('');
       el.innerHTML = '<table><thead><tr><th>Ad Soyad</th><th>Telefon</th><th>Araç</th><th>Ehliyet No</th><th>SRC Bitiş</th><th>Durum</th><th></th></tr></thead><tbody>' + trs + '</tbody></table>';
     }
-    function delSofor(id) { DB.soforler = DB.soforler.filter(function (s) { return s.id !== id; }); saveAll(); renderSoforler(); showToast('Şoför silindi'); }
-    function soforKaydet() {
+    async function delSofor(id) {
+      if (!confirm("Emin misiniz?")) return;
+      try {
+        await sbSoforSil(id);
+        DB.soforler = DB.soforler.filter(function (s) { return s.id !== id; });
+        renderSoforler(); showToast('Şoför silindi');
+      } catch (e) { showToast('Hata: ' + e.message, 'error'); }
+    }
+    async function soforKaydet() {
       var ad = document.getElementById('sf-ad').value.trim();
       if (!ad) { showToast('Ad zorunlu', 'error'); return; }
-      DB.soforler.push({ id: nid(), ad: ad, tel: document.getElementById('sf-tel').value, arac: document.getElementById('sf-arac').value.toUpperCase(), ehliyet: document.getElementById('sf-ehliyet').value, src: document.getElementById('sf-src').value.split('-').reverse().join('.'), durum: document.getElementById('sf-durum').value });
-      saveAll(); closeModal('m-sofor'); renderSoforler(); showToast('Şoför eklendi');
+      try {
+        var obj = await sbSoforEkle({ ad: ad, tel: document.getElementById('sf-tel').value, arac: document.getElementById('sf-arac').value.toUpperCase(), ehliyet: document.getElementById('sf-ehliyet').value, src: document.getElementById('sf-src').value.split('-').reverse().join('.'), durum: document.getElementById('sf-durum').value });
+        DB.soforler.push(obj);
+        closeModal('m-sofor'); renderSoforler(); showToast('Şoför eklendi');
+      } catch (e) { showToast('Hata: ' + e.message, 'error'); }
     }
 
     // ══════════════════════════════════════════════
@@ -6229,6 +6443,9 @@
       // Rol bazlı menü
       applyRoleMenu();
       if (found.role === 'member') {
+        // Üye girişinde kendi ID'sini DB'den bul
+        var dbUye = DB.uyeler.find(function(u) { return u.ad === found.uyeCariAd; });
+        if(dbUye) found.uyeId = dbUye.id;
         applyMemberMode(found);
       } else {
         document.body.classList.remove('member-mode');
