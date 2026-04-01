@@ -3045,8 +3045,6 @@
             </div>
             <button class="btn btn-primary" onclick="uyeListeAra()" style="padding:10px 20px;white-space:nowrap;">Ara
               &#8594;</button>
-            <button class="btn btn-ghost" onclick="uyeListeHepsiniGoster()"
-              style="padding:10px 16px;white-space:nowrap;" title="Tümünü listele">&#128101; Tümü</button>
           </div>
           <div id="uye-liste-count" style="margin-top:10px;font-size:12px;color:var(--text3);display:none;"></div>
         </div>
@@ -3580,19 +3578,7 @@
             <input type="number" id="pm-tutar" placeholder="0" oninput="pmCalc()" />
           </div>
         </div>
-        <!-- Litre ve birim fiyat opsiyonel -->
-        <div class="form-row form-row-2 fg">
-          <div class="fg">
-            <label>Litre <span style="color:var(--text3);font-weight:400;">(opsiyonel)</span></label>
-            <input type="number" id="pm-litre" placeholder="0" oninput="pmCalc()" />
-          </div>
-          <div class="fg">
-            <label>Birim Fiyat (₺/L)</label>
-            <div
-              style="padding:10px 12px;background:#f8fafc;border:1.5px solid var(--border);border-radius:9px;font-size:13px;color:var(--text3);"
-              id="pm-birim">—</div>
-          </div>
-        </div>
+        <!-- Litre ve birim fiyat kaldırıldı -->
         <div class="fg">
           <label>Notlar <span style="color:var(--text3);font-weight:400;">(opsiyonel)</span></label>
           <input type="text" id="pm-not" placeholder="Seyahat notu, güzergah vb." />
@@ -4060,14 +4046,12 @@
           <div class="fg"><label>Tarih</label><input type="date" id="petrol-edit-tarih" /></div>
           <div class="fg"><label>Fis No</label><input type="text" id="petrol-edit-fis" placeholder="F-2026-001" /></div>
         </div>
-        <div class="form-row form-row-2 fg">
-          <div class="fg"><label>Litre</label><input type="number" id="petrol-edit-litre" placeholder="0" /></div>
-          <div class="fg"><label>Tutar (TL)</label><input type="number" id="petrol-edit-tutar" placeholder="0" /></div>
-        </div>
-        <div class="fg"><label>Not</label><input type="text" id="petrol-edit-not" placeholder="Aciklama..." /></div>
-        <button class="btn-save" onclick="petrolIslemGuncelle()">Degisiklikleri Kaydet</button>
+        <div class="fg"><label>Tutar (TL)</label><input type="number" id="petrol-edit-tutar" placeholder="0" /></div>
       </div>
+      <div class="fg"><label>Not</label><input type="text" id="petrol-edit-not" placeholder="Aciklama..." /></div>
+      <button class="btn-save" onclick="petrolIslemGuncelle()">Degisiklikleri Kaydet</button>
     </div>
+  </div>
   </div>
 
   <!-- KAMYON MODAL -->
@@ -4222,7 +4206,7 @@
     async function loadAllFromSupabase() {
       try {
         var [u, s, g, f, k, sf, y, p, c] = await Promise.all([
-          sb.from('uyeler').select('*').order('id'),
+          sb.from('uyeler').select('id, ad, plaka, tc, tel, vn, adres, kullanici_adi, sifre, rol').order('id'),
           sb.from('seferler').select('*').order('id'),
           sb.from('giderler').select('*').order('id'),
           sb.from('faturalar').select('*').order('id'),
@@ -4248,7 +4232,10 @@
 
     // Alan ismi eşleştirme fonksiyonları (snake_case → camelCase/TR)
     function mapUye(r) {
-      return { id: r.id, ad: r.ad, plaka: r.plaka, tc: r.tc, tel: r.tel, vn: r.vn, adres: r.adres };
+      return {
+        id: r.id, ad: r.ad, plaka: r.plaka, tc: r.tc, tel: r.tel, vn: r.vn, adres: r.adres,
+        username: r.kullanici_adi, password: r.sifre, role: r.rol
+      };
     }
     function mapSefer(r) {
       return { id: r.id, uyeId: r.uye_id, tarih: r.tarih, kalkis: r.kalkis, varis: r.varis, arac: r.arac, firma: r.firma, fiyat: Number(r.fiyat), tonaj: Number(r.tonaj || 0), durum: r.durum };
@@ -4273,17 +4260,34 @@
 
     // --- ÜYE KAYDET (Supabase INSERT) ---
     async function sbUyeEkle(uye) {
+      if (!uye.username) {
+        console.warn("DİKKAT: Kullanıcı adı boş! Otomatik üretiliyor...");
+        uye.username = normalizeUsername(uye.ad) || normalizeUsername(uye.plaka);
+      }
+      console.log("Supabase'e Giden Ham Veri:", {
+        ad: uye.ad,
+        kullanici_adi: uye.username,
+        sifre: uye.password,
+        rol: uye.role
+      });
       var { data, error } = await sb.from('uyeler').insert({
-        ad: uye.ad, plaka: uye.plaka, tc: uye.tc, tel: uye.tel, vn: uye.vn, adres: uye.adres
-      }).select().single();
-      if (error) throw error;
+        ad: uye.ad, plaka: uye.plaka, tc: uye.tc, tel: uye.tel, vn: uye.vn, adres: uye.adres,
+        kullanici_adi: uye.username, sifre: uye.password, rol: uye.role
+      }).select('id, ad, plaka, tc, tel, vn, adres, kullanici_adi, sifre, rol').single();
+      if (error) {
+        console.error("❌ SUPABASE KAYIT HATASI:", error);
+        showToast("VT Hatası: " + error.message, 'error');
+        throw error;
+      }
+      console.log("✅ Kayıt Başarılı. Dönen veri:", data);
       return mapUye(data);
     }
 
     // --- ÜYE GÜNCELLE (Supabase UPDATE) ---
     async function sbUyeGuncelle(uye) {
       var { error } = await sb.from('uyeler').update({
-        ad: uye.ad, plaka: uye.plaka, tc: uye.tc, tel: uye.tel, vn: uye.vn, adres: uye.adres
+        ad: uye.ad, plaka: uye.plaka, tc: uye.tc, tel: uye.tel, vn: uye.vn, adres: uye.adres,
+        kullanici_adi: uye.username, sifre: uye.password, rol: uye.role
       }).eq('id', uye.id);
       if (error) throw error;
     }
@@ -4545,7 +4549,6 @@
         var tarEl = document.getElementById('pm-tarih'); if (tarEl) tarEl.value = dsnow;
         var fisEl = document.getElementById('pm-fis'); if (fisEl) fisEl.value = '';
         var tutarEl = document.getElementById('pm-tutar'); if (tutarEl) tutarEl.value = '';
-        var litreEl = document.getElementById('pm-litre'); if (litreEl) litreEl.value = '';
         var notEl = document.getElementById('pm-not'); if (notEl) notEl.value = '';
         pmCalc(); pmUyeSecimDegis();
       }
@@ -4650,12 +4653,11 @@
         var topAkin = DB.petrol.filter(function (p) { return p.firma === 'AKIN'; }).reduce(function (a, p) { return a + p.tutar; }, 0);
         var topAtli = DB.petrol.filter(function (p) { return p.firma === 'ATLI'; }).reduce(function (a, p) { return a + p.tutar; }, 0);
         var topShell = DB.petrol.filter(function (p) { return p.firma === 'SHELL'; }).reduce(function (a, p) { return a + p.tutar; }, 0);
-        var topLitre = DB.petrol.reduce(function (a, p) { return a + (p.litre || 0); }, 0);
         statsEl.innerHTML = [
           { ico: '⛽', lbl: 'Akın Grup Toplamı', val: '₺' + fmt(topAkin), si: 'si-b', pill: DB.petrol.filter(function (p) { return p.firma === 'AKIN'; }).length + ' işlem', pillC: 'pill-b' },
           { ico: '🐎', lbl: 'Atlı Petrol Toplamı', val: '₺' + fmt(topAtli), si: 'si-o', pill: DB.petrol.filter(function (p) { return p.firma === 'ATLI'; }).length + ' işlem', pillC: 'pill-o' },
           { ico: '🔴', lbl: 'Shell Toplamı', val: '₺' + fmt(topShell), si: 'si-r', pill: DB.petrol.filter(function (p) { return p.firma === 'SHELL'; }).length + ' işlem', pillC: 'pill-r' },
-          { ico: '🛢️', lbl: 'Toplam Litre', val: fmt(topLitre) + ' L', si: 'si-g', pill: DB.petrol.length + ' işlem', pillC: 'pill-g' }
+          { ico: '💰', lbl: 'Genel Toplam', val: '₺' + fmt(topAkin + topAtli + topShell), si: 'si-g', pill: DB.petrol.length + ' işlem', pillC: 'pill-g' }
         ].map(function (s) { return '<div class="stat-card"><div class="stat-top"><div class="stat-ico ' + s.si + '">' + s.ico + '</div><span class="stat-pill ' + s.pillC + '">' + s.pill + '</span></div><div class="stat-lbl">' + s.lbl + '</div><div class="stat-num">' + s.val + '</div></div>'; }).join('');
       }
 
@@ -4719,30 +4721,27 @@
       var pageRows = rows.slice((petrolPage - 1) * petrolPageSize, petrolPage * petrolPageSize);
 
       var trs = pageRows.length ? pageRows.map(function (p) {
+        var u = DB.uyeler.find(function (x) { return x.id == p.uyeId; });
         if (p.isCek) {
           var turIco = p.tur === 'verilen' ? '📤' : '📥';
           var turLbl = p.tur === 'verilen' ? 'Verilen Çek' : 'Alınan Çek';
           return '<tr style="background:rgba(139,92,246,0.04);border-left:3px solid var(--purple);">'
             + '<td style="font-size:12px;color:var(--text3);">' + p.tarih + '</td>'
-            + '<td colspan="2"><b style="color:var(--purple);">' + turIco + ' ' + turLbl + '</b><div style="font-size:11px;color:var(--text3);">Vade: ' + p.vade + '</div></td>'
+            + '<td><b>' + (u ? u.ad : '') + '</b>' + (u ? '<div style="font-size:10px;color:var(--text3);">' + u.plaka + '</div>' : '') + '<b style="color:var(--purple);display:block;margin-top:2px;font-size:11px;">' + turIco + ' ' + turLbl + '</b></td>'
+            + '<td style="font-family:monospace;font-size:11px;color:var(--text2);">' + (p.banka || '') + ' ' + (p.cekNo || '') + '<div style="font-size:10px;color:var(--text3);">Vade: ' + p.vade + '</div></td>'
             + '<td style="text-align:right;font-weight:700;color:#059669;">₺' + fmt(p.tutar) + '</td>'
-            + '<td colspan="2" style="font-family:monospace;font-size:11px;color:var(--text2);">' + (p.banka || '') + ' ' + (p.cekNo || '') + '</td>'
-            + '<td style="color:var(--text3);font-size:12px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + (p.aciklama || '—') + '</td>'
+            + '<td style="color:var(--text3);font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + (p.aciklama || '—') + '</td>'
             + '<td><div style="display:flex;gap:4px;justify-content:flex-end;">'
             + '<button class="edit-btn" onclick="editCek(' + p.id + ')" title="Düzenle">✏️</button>'
             + '<button class="del-btn" onclick="delCek(' + p.id + ')" title="Sil">✕</button>'
             + '</div></td>'
             + '</tr>';
         } else {
-          var u = DB.uyeler.find(function (x) { return x.id == p.uyeId; });
-          var birim = p.litre && p.litre > 0 ? (p.tutar / p.litre).toFixed(2) + ' ₺/L' : '—';
           return '<tr>'
             + '<td style="font-size:12px;color:var(--text3);">' + p.tarih + '</td>'
             + '<td><b>' + (u ? u.ad : '—') + '</b><div style="font-size:11px;color:var(--text3);">' + (u ? u.plaka : '') + '</div></td>'
             + '<td style="font-family:monospace;font-size:12px;color:var(--blue2);">' + p.fis + '</td>'
             + '<td style="text-align:right;font-weight:700;color:var(--red);">₺' + fmt(p.tutar) + '</td>'
-            + '<td style="text-align:right;color:var(--text2);">' + (p.litre ? fmt(p.litre) + ' L' : '—') + '</td>'
-            + '<td style="text-align:right;font-size:11px;color:var(--text3);">' + birim + '</td>'
             + '<td style="color:var(--text3);font-size:12px;">' + (p.not || '—') + '</td>'
             + '<td><div style="display:flex;gap:4px;justify-content:flex-end;">'
             + '<button class="edit-btn" onclick="petrolEdit(' + p.id + ')" title="Düzenle">✏️</button>'
@@ -4751,13 +4750,11 @@
             + '</tr>';
         }
       }).join('')
-        : '<tr><td colspan="8"><div class="empty"><div class="empty-ico">⛽</div><div class="empty-txt">Kayıt bulunamadı</div></div></td></tr>';
+        : '<tr><td colspan="6"><div class="empty"><div class="empty-ico">⛽</div><div class="empty-txt">Kayıt bulunamadı</div></div></td></tr>';
 
       el.innerHTML = '<table><thead><tr>'
         + '<th>Tarih</th><th>Üye / Tür</th><th>Fiş / Detay</th>'
         + '<th style="text-align:right">Tutar</th>'
-        + '<th style="text-align:right">Litre</th>'
-        + '<th style="text-align:right">Birim</th>'
         + '<th>Not</th><th></th>'
         + '</tr></thead><tbody>' + trs + '</tbody></table>';
 
@@ -4855,10 +4852,7 @@
     }
 
     function pmCalc() {
-      var t = parseFloat(document.getElementById('pm-tutar').value) || 0;
-      var l = parseFloat(document.getElementById('pm-litre').value) || 0;
-      var b = document.getElementById('pm-birim');
-      if (b) b.textContent = t && l ? (t / l).toFixed(2) + ' ₺/L' : '—';
+      // Litre ve birim fiyat kaldırıldı
     }
 
     async function petrolKaydet(btn) {
@@ -4868,22 +4862,26 @@
       var tarih = document.getElementById('pm-tarih').value.split('-').reverse().join('.');
       var fis = document.getElementById('pm-fis').value.trim();
       var tutar = Number(document.getElementById('pm-tutar').value) || 0;
-      var litre = Number(document.getElementById('pm-litre').value) || 0;
       var not = document.getElementById('pm-not').value.trim();
       var editId = document.getElementById('pm-edit-id').value;
+
+      var u = DB.uyeler.find(function (x) { return x.id == uyeId; });
+      var uInfo = u ? ' - ' + u.ad + ' (' + u.plaka + ')' : '';
 
       try {
         if (editId) {
           var idx = DB.petrol.findIndex(function (p) { return String(p.id) === String(editId); });
-          if (idx > -1) { DB.petrol[idx] = { id: DB.petrol[idx].id, firma: firma, uyeId: uyeId, tarih: tarih, fis: fis, tutar: tutar, litre: litre, not: not }; }
+          if (idx > -1) { DB.petrol[idx] = { id: DB.petrol[idx].id, firma: firma, uyeId: uyeId, tarih: tarih, fis: fis, tutar: tutar, litre: 0, not: not }; }
           saveAll(); closeModal('m-petrol');
           if (typeof aktifPetrolFirma !== 'undefined' && aktifPetrolFirma) petrolCariSecFirma(aktifPetrolFirma); else { renderPetrolTablo(); renderPetrol(); }
           showToast('Mazot kaydı güncellendi ✏️');
         } else {
-          var newP = await sbPetrolEkle({ firma: firma, uyeId: uyeId, tarih: tarih, fis: fis, tutar: tutar, litre: litre, not: not });
+          var pNot = not || ('Mazot Alımı' + uInfo);
+          var newP = await sbPetrolEkle({ firma: firma, uyeId: uyeId, tarih: tarih, fis: fis, tutar: tutar, litre: 0, not: pNot });
           DB.petrol.push(newP);
           // Gider tablosuna da yansıt (Mazot alımı bir giderdir)
-          var createdGider = await sbGiderEkle({ uyeId: uyeId, tarih: tarih, tur: 'Mazot - ' + firma, aciklama: 'Mazot Alımı (' + firma + ') Fiş:' + fis, borc: tutar, alacak: 0, tutar: tutar, petrolId: newP.id });
+          var gAciklama = 'Mazot Alımı (' + firma + ')' + uInfo + ' Fiş:' + fis;
+          var createdGider = await sbGiderEkle({ uyeId: uyeId, tarih: tarih, tur: 'Mazot - ' + firma, aciklama: gAciklama, borc: tutar, alacak: 0, tutar: tutar, petrolId: newP.id });
           DB.giderler.push(createdGider);
           saveAll(); closeModal('m-petrol');
           if (typeof aktifPetrolFirma !== 'undefined' && aktifPetrolFirma) petrolCariSecFirma(aktifPetrolFirma); else { renderPetrolTablo(); renderPetrol(); }
@@ -4911,7 +4909,6 @@
       set('pm-tarih', toDate(p.tarih));
       set('pm-fis', p.fis);
       set('pm-tutar', p.tutar);
-      set('pm-litre', p.litre || 0);
       set('pm-not', p.not || '');
       pmCalc(); pmUyeSecimDegis();
       var title = document.getElementById('petrol-modal-title'); if (title) title.textContent = 'MAZOT KAYDI DÜZENLE';
@@ -5313,7 +5310,51 @@
         return;
       }
       try {
-        var newGider = { uyeId: selUyeId, tarih: tar, tur: document.getElementById('g-tur').value, aciklama: document.getElementById('g-aciklama').value || document.getElementById('g-tur').value, borc: borc, alacak: alacak, tutar: borc - alacak };
+        var tur = document.getElementById('g-tur').value;
+        var pId = null;
+
+        // Petrol Senkronizasyonu
+        if (tur.startsWith('Mazot -')) {
+          var fMap = { 'Mazot - Shell': 'SHELL', 'Mazot - Akın Grup': 'AKIN', 'Mazot - Atlı': 'ATLI' };
+          var firma = fMap[tur];
+          if (firma) {
+            try {
+              var u = DB.uyeler.find(function (x) { return x.id == selUyeId; });
+              var uInfo = u ? ' - ' + u.ad + ' (' + u.plaka + ')' : '';
+              var pNot = (document.getElementById('g-aciklama').value || tur) + uInfo;
+
+              var pRec = await sbPetrolEkle({
+                firma: firma,
+                uyeId: selUyeId,
+                tarih: tar,
+                fis: 'Cari Gider',
+                tutar: borc,
+                litre: 0,
+                not: pNot
+              });
+              pId = pRec.id;
+              DB.petrol.push(pRec);
+            } catch (pErr) {
+              console.error('Petrol cari kaydı atılamadı:', pErr);
+            }
+          }
+        }
+
+        var u = DB.uyeler.find(function (x) { return x.id == selUyeId; });
+        var uInfo = u ? ' - ' + u.ad + ' (' + u.plaka + ')' : '';
+        var finalAciklama = (document.getElementById('g-aciklama').value || tur);
+        if (tur.startsWith('Mazot -')) finalAciklama += uInfo;
+
+        var newGider = {
+          uyeId: selUyeId,
+          tarih: tar,
+          tur: tur,
+          aciklama: finalAciklama,
+          borc: borc,
+          alacak: alacak,
+          tutar: borc - alacak,
+          petrolId: pId
+        };
         var created = await sbGiderEkle(newGider);
         DB.giderler.push(created);
         closeModal('m-gider');
@@ -5633,10 +5674,6 @@
             formHtml += '<div class="cdm-section"><div class="cdm-section-title">⛽ Mazot Detayları</div>'
               + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">'
               + _inp('cdm-p-fis', 'Fiş No', petrolData.fis || '', 'text', { placeholder: 'F-2026-001' })
-              + _inp('cdm-p-litre', 'Litre', petrolData.litre || '', 'number')
-              + '<div><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3);margin-bottom:4px;">Birim Fiyat (₺/L)</div>'
-              + '<div style="padding:8px 10px;background:#f1f5f9;border:1.5px solid var(--border);border-radius:8px;font-size:13px;color:var(--text2);" id="cdm-birim-fiyat">'
-              + (petrolData.litre && petrolData.tutar ? '₺' + (petrolData.tutar / petrolData.litre).toFixed(2) + '/L' : '—') + '</div></div>'
               + _inp('cdm-p-not', 'Not', petrolData.not || '', 'text', { full: true, placeholder: 'Seyahat notu...' })
               + '</div></div>';
           }
@@ -5733,12 +5770,11 @@
           var pi = DB.petrol.findIndex(function (p) { return p.id == petrolId; });
           if (pi > -1) {
             var fisEl = document.getElementById('cdm-p-fis');
-            var litEl = document.getElementById('cdm-p-litre');
             var notEl = document.getElementById('cdm-p-not');
             if (fisEl) DB.petrol[pi].fis = fisEl.value;
-            if (litEl) DB.petrol[pi].litre = parseFloat(litEl.value) || 0;
             DB.petrol[pi].tutar = borc;
             if (notEl) DB.petrol[pi].not = notEl.value;
+            DB.petrol[pi].litre = 0;
             await sbPetrolGuncelle(DB.petrol[pi]);
           }
         }
@@ -6182,9 +6218,23 @@
         return;
       }
       try {
-        var createdUye = await sbUyeEkle({ ad: ad, plaka: pl, tc: document.getElementById('u-tc').value, tel: document.getElementById('u-tel').value, vn: document.getElementById('u-vn').value, adres: document.getElementById('u-adres').value });
+        var username = normalizeUsername(ad);
+        if (!username) username = normalizeUsername(pl); // İsim boşsa plakadan üret
+
+        console.log("Oluşturulan kullanıcı adı:", username);
+
+        var createdUye = await sbUyeEkle({
+          ad: ad, plaka: pl,
+          tc: document.getElementById('u-tc').value,
+          tel: document.getElementById('u-tel').value,
+          vn: document.getElementById('u-vn').value,
+          adres: document.getElementById('u-adres').value,
+          username: username,
+          password: '1234',
+          role: 'member'
+        });
         DB.uyeler.push(createdUye);
-        closeModal('m-uye'); renderUyeler(); var nbu = document.getElementById('nb-uyeler'); if (nbu) nbu.textContent = DB.uyeler.length; showToast('Üye eklendi');
+        closeModal('m-uye'); renderUyeler(); var nbu = document.getElementById('nb-uyeler'); if (nbu) nbu.textContent = DB.uyeler.length; showToast('Üye eklendi. Kullanıcı adı: ' + username);
       } catch (e) {
         showToast('Hata: ' + e.message, 'error');
       } finally {
@@ -6627,7 +6677,26 @@
       if (btn) { btn.disabled = true; btn.innerHTML = '⌛ Lütfen Bekleyin...'; }
       var u = document.getElementById('login-user').value.trim().toLowerCase();
       var p = document.getElementById('login-pass').value;
+
+      // 1. Sabit USERS listesinde ara
       var found = USERS.find(function (x) { return x.username === u && x.password === p; });
+
+      // 2. Bulunamazsa DB.uyeler içinde ara
+      if (!found) {
+        var dbUye = DB.uyeler.find(function (x) {
+          return x.username && x.username.toLowerCase() === u && x.password === p;
+        });
+        if (dbUye) {
+          found = {
+            username: dbUye.username,
+            password: dbUye.password,
+            displayName: dbUye.ad,
+            role: dbUye.role || 'member',
+            uyeId: dbUye.id
+          };
+        }
+      }
+
       var errEl = document.getElementById('login-err');
 
       try {
@@ -6786,7 +6855,7 @@
       if (!el) return;
       // If no filter provided, show empty state (search prompt)
       if (filtered === undefined) {
-        el.innerHTML = '<div style="padding:60px 20px;text-align:center;background:#fff;border-radius:10px;border:1px solid var(--border);"><div style="font-size:48px;margin-bottom:12px;">&#128269;</div><div style="font-size:15px;font-weight:700;color:var(--text);">Üye aramak için yukarıdaki arama kutusunu kullanın</div><div style="font-size:13px;color:#5a6e85;margin-top:6px;">Üye adı veya plaka yazın, "Tümü" butonuyla tüm listeyi görün</div></div>';
+        el.innerHTML = '<div style="padding:60px 20px;text-align:center;background:#fff;border-radius:10px;border:1px solid var(--border);"><div style="font-size:48px;margin-bottom:12px;">&#128269;</div><div style="font-size:15px;font-weight:700;color:var(--text);">Üye aramak için yukarıdaki arama kutusunu kullanın</div><div style="font-size:13px;color:#5a6e85;margin-top:6px;">Üye adı veya plaka yazarak sonuçları listeleyebilirsiniz</div></div>';
         var countEl = document.getElementById('uye-liste-count'); if (countEl) countEl.style.display = 'none';
         return;
       }
@@ -6808,6 +6877,7 @@
           + '<td><b style="font-size:13px;">' + u.ad + '</b></td>'
           + '<td><span style="font-family:monospace;font-size:12px;background:#f0f3f8;padding:3px 8px;border-radius:5px;">' + u.plaka + '</span></td>'
           + '<td style="font-size:12px;color:var(--text3);">' + (u.tel || '&mdash;') + '</td>'
+          + '<td style="font-size:12px;color:var(--blue2);font-weight:600;">' + (u.username || '&mdash;') + '</td>'
           + '<td style="font-size:12px;color:var(--text3);">' + (u.adres || '&mdash;') + '</td>'
           + '<td style="text-align:center;font-weight:600;color:var(--blue2);">' + seferSayisi + '</td>'
           + '<td class="tg" style="text-align:right;">&#8378;' + fmt(topGelir) + '</td>'
@@ -6821,7 +6891,7 @@
           + '</tr>';
       }).join('');
       el.innerHTML = '<div class="tbl-wrap"><table><thead><tr>'
-        + '<th>#</th><th>Ad Soyad</th><th>Plaka</th><th>Telefon</th><th>Adres</th>'
+        + '<th>#</th><th>Ad Soyad</th><th>Plaka</th><th>Telefon</th><th>Kullanıcı Adı</th><th>Adres</th>'
         + '<th style="text-align:center">Sefer</th>'
         + '<th style="text-align:right">Toplam Gelir</th>'
         + '<th style="text-align:right">Toplam Borç</th>'
@@ -6868,7 +6938,10 @@
         tc: document.getElementById('ue-tc').value.trim(),
         tel: document.getElementById('ue-tel').value.trim(),
         vn: document.getElementById('ue-vn').value.trim(),
-        adres: document.getElementById('ue-adres').value.trim()
+        adres: document.getElementById('ue-adres').value.trim(),
+        username: DB.uyeler[idx].username || normalizeUsername(ad),
+        password: DB.uyeler[idx].password || '1234',
+        role: DB.uyeler[idx].role || 'member'
       };
 
       try {
@@ -7194,7 +7267,6 @@
       }
 
       document.getElementById('petrol-edit-fis').value = islem.fis || islem.fisNo || '';
-      document.getElementById('petrol-edit-litre').value = islem.litre || 0;
       document.getElementById('petrol-edit-tutar').value = islem.tutar || 0;
       document.getElementById('petrol-edit-not').value = islem.not || '';
 
@@ -7213,7 +7285,7 @@
         uyeId: DB.petrol[idx].uyeId,
         tarih: tarihVal ? tarihVal.split('-').reverse().join('.') : '',
         fis: document.getElementById('petrol-edit-fis').value.trim(),
-        litre: Number(document.getElementById('petrol-edit-litre').value) || 0,
+        litre: 0,
         tutar: Number(document.getElementById('petrol-edit-tutar').value) || 0,
         not: document.getElementById('petrol-edit-not').value.trim()
       };
@@ -7296,6 +7368,14 @@
         document.getElementById('cari-sf-autocomplete').style.display = 'none';
         cariSfGoster(id);
       }
+    }
+
+    function normalizeUsername(text) {
+      if (!text) return '';
+      var ch = { 'ç': 'c', 'ğ': 'g', 'ı': 'i', 'İ': 'i', 'ö': 'o', 'ş': 's', 'ü': 'u', 'Ç': 'c', 'Ğ': 'g', 'Ö': 'o', 'Ş': 's', 'Ü': 'u' };
+      var t = text.trim().toLowerCase();
+      Object.keys(ch).forEach(function (k) { t = t.replace(new RegExp(k, 'g'), ch[k]); });
+      return t.replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '');
     }
 
     function normalizeTR(s) {
@@ -7467,7 +7547,6 @@
       var ceklerRow = DB.cekler.filter(function (c) { return c.petrolFirma === firma && c.tur === 'verilen'; });
 
       var topTutar = islemler.reduce(function (a, p) { return a + Number(p.tutar); }, 0);
-      var topLitre = islemler.reduce(function (a, p) { return a + (Number(p.litre) || 0); }, 0);
       var topCek = ceklerRow.reduce(function (a, c) { return a + Number(c.tutar); }, 0);
       var kalanBorc = topTutar - topCek;
 
@@ -7482,8 +7561,7 @@
         statsEl.innerHTML = [
           { ico: '&#128176;', lbl: 'Alınan Mazot', val: '&#8378;' + fmt(topTutar), si: 'si-r', pill: islemler.length + ' kayıt', pillC: 'pill-r' },
           { ico: '📤', lbl: 'Verilen Çekler', val: '&#8378;' + fmt(topCek), si: 'si-g', pill: ceklerRow.length + ' çek', pillC: 'pill-g' },
-          { ico: '💰', lbl: 'Kalan Borç', val: balText, si: 'si-o', pill: 'Bakiye', pillC: kalanBorc <= 0 ? 'pill-g' : 'pill-r', customColor: balColor },
-          { ico: '&#128739;', lbl: 'Toplam Litre', val: fmt(topLitre) + ' L', si: 'si-b', pill: 'Litre', pillC: 'pill-b' }
+          { ico: '💰', lbl: 'Kalan Borç', val: balText, si: 'si-o', pill: 'Bakiye', pillC: kalanBorc <= 0 ? 'pill-g' : 'pill-r', customColor: balColor }
         ].map(function (s) {
           var valStyles = s.customColor ? 'color:' + s.customColor + ';' : '';
           return '<div class="stat-card"><div class="stat-top"><div class="stat-ico ' + s.si + '">' + s.ico + '</div><span class="stat-pill ' + s.pillC + '">' + s.pill + '</span></div><div class="stat-lbl">' + s.lbl + '</div><div class="stat-num" style="' + valStyles + '">' + s.val + '</div></div>';
