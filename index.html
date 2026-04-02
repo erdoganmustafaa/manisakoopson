@@ -12,6 +12,7 @@
     rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     :root {
       --navy: #0b1426;
@@ -1909,12 +1910,19 @@
         left: 0;
       }
 
-      #cari-tablo table,
+      #cari-tablo table {
+        min-width: 100% !important;
+      }
+
       #fatura-tablo table,
       #cek-tablo table,
       #tum-seferler-tablo table,
       #sefer-tablo-wrap table {
         min-width: 850px !important;
+      }
+
+      .h-m {
+        display: none !important;
       }
 
       .mobil-filter-bar {
@@ -2891,6 +2899,9 @@
       <div class="nav-item" onclick="nav('seferler',this)">
         <div class="nav-icon">🗺️</div> Seferler
       </div>
+      <div class="nav-item" onclick="nav('fiyatlar',this)">
+        <div class="nav-icon">🏷️</div> Güncel Fiyatlar
+      </div>
       <div class="nav-section" style="height:1px;background:rgba(255,255,255,0.06);margin:8px 16px;"></div>
       <div class="sb-section" data-role="admin">Filo</div>
       <div class="nav-item" data-role="admin" onclick="nav('yukler',this)">
@@ -3254,6 +3265,73 @@
             style="font-size:11px;font-weight:600;color:var(--text3);background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:3px 10px;white-space:nowrap;"></span>
         </div>
         <div class="tbl-wrap" id="tum-seferler-tablo"></div>
+      </div>
+
+      <!-- ══════════ GÜNCEL FİYATLAR ══════════ -->
+      <div id="pg-fiyatlar" class="page">
+        <div class="ph">
+          <div class="ph-left">
+            <div class="ph-badge">🏷️ Fiyat Yönetimi</div>
+            <div class="ph-title">GÜNCEL FİYATLAR</div>
+            <div class="ph-sub">Şehir bazlı güncel nakliye fiyatları</div>
+          </div>
+          <div class="ph-actions" data-role="admin">
+            <button class="btn btn-success btn-sm" onclick="document.getElementById('price-excel-input').click()">
+              📤 <span id="price-firm-btn">HOROZ</span> Excel Yükle
+            </button>
+            <input type="file" id="price-excel-input" style="display:none;" accept=".xlsx, .xls"
+              onchange="handlePriceExcel(event)" />
+            <button class="btn btn-danger btn-sm" onclick="clearPrices()">🗑️ Firmayı Temizle</button>
+          </div>
+        </div>
+
+        <!-- FİRMA SEÇİCİ (TABS) -->
+        <div style="display:flex;gap:15px;margin-bottom:22px;margin-top:10px;flex-wrap:wrap;">
+          <div id="ff-horoz" class="stat-card" onclick="setFiyatFirma('HOROZ')"
+            style="cursor:pointer;flex:1;min-width:180px;border:2.5px solid var(--blue2);transition:0.2s;background:#fff;">
+            <div class="stat-top">
+              <div class="stat-ico si-b">🚛</div><span class="stat-pill pill-b">Fiyat Listesi</span>
+            </div>
+            <div class="stat-lbl" style="font-weight:800;color:var(--text);font-size:16px;">HOROZ</div>
+            <div class="stat-num" id="fs-horoz-count" style="font-size:13px;color:var(--text3);">0 şehir</div>
+          </div>
+          <div id="ff-gps" class="stat-card" onclick="setFiyatFirma('GPS')"
+            style="cursor:pointer;flex:1;min-width:180px;border:1.5px solid var(--border);transition:0.2s;background:#fff;">
+            <div class="stat-top">
+              <div class="stat-ico si-g">📡</div><span class="stat-pill pill-g">Fiyat Listesi</span>
+            </div>
+            <div class="stat-lbl" style="font-weight:800;color:var(--text);font-size:16px;">GPS</div>
+            <div class="stat-num" id="fs-gps-count" style="font-size:13px;color:var(--text3);">0 şehir</div>
+          </div>
+          <div id="ff-polinas" class="stat-card" onclick="setFiyatFirma('POLİNAS')"
+            style="cursor:pointer;flex:1;min-width:180px;border:1.5px solid var(--border);transition:0.2s;background:#fff;">
+            <div class="stat-top">
+              <div class="stat-ico si-o">🏭</div><span class="stat-pill pill-o">Fiyat Listesi</span>
+            </div>
+            <div class="stat-lbl" style="font-weight:800;color:var(--text);font-size:16px;">POLİNAS</div>
+            <div class="stat-num" id="fs-polinas-count" style="font-size:13px;color:var(--text3);">0 şehir</div>
+          </div>
+        </div>
+
+        <!-- ARAMA BARI -->
+        <div
+          style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:20px 22px;margin-bottom:18px;position:relative;">
+          <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:10px;">🔍 <span
+              id="price-search-firm-name">HOROZ</span> - Şehir veya Bölge Ara</div>
+          <div style="display:flex;gap:10px;align-items:center;">
+            <div style="position:relative;flex:1;">
+              <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px;">📍</span>
+              <input type="text" id="price-search-input" placeholder="Örn: İstanbul, Ankara, İzmir..."
+                style="width:100%;padding:11px 14px 11px 42px;border:2px solid var(--border);border-radius:10px;font-size:14px;font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);transition:border 0.15s;outline:none;"
+                oninput="searchPrices()" onkeydown="if(event.key==='Enter')searchPrices()" />
+            </div>
+            <button class="btn btn-primary" onclick="searchPrices()"
+              style="padding:10px 24px;white-space:nowrap;font-weight:700;">Fiyat Sorgula</button>
+          </div>
+        </div>
+
+        <!-- SONUÇLAR -->
+        <div id="price-results" class="tbl-wrap"></div>
       </div>
 
       <!-- ══════════ YÜKLER ══════════ -->
@@ -4199,7 +4277,8 @@
       soforler: [],
       yukler: [],
       petrol: [],
-      cekler: []
+      cekler: [],
+      fiyatlar: []
     };
 
     // Yardımcı: Supabase'den tüm veriyi yükle
@@ -4225,6 +4304,8 @@
         DB.yukler = (y.data || []);
         DB.petrol = (p.data || []).map(mapPetrol);
         DB.cekler = (c.data || []).map(mapCek);
+        var fi = await sb.from('fiyatlar').select('*').order('sehir');
+        DB.fiyatlar = (fi.data || []).map(mapFiyat);
       } catch (e) {
         showToast('Veri yükleme hatası: ' + e.message, 'error');
       }
@@ -4251,6 +4332,16 @@
     }
     function mapCek(r) {
       return { id: r.id, tur: r.tur, uyeId: r.uye_id, petrolFirma: r.petrol_firma, tarih: r.tarih, vade: r.vade, banka: r.banka, cekNo: r.cek_no, tutar: Number(r.tutar || 0), aciklama: r.aciklama, durum: r.durum };
+    }
+    function mapFiyat(r) {
+      return {
+        id: r.id,
+        sehir: r.sehir,
+        fiyat_kamyon: Number(r.fiyat_kamyon || 0),
+        fiyat_tir: Number(r.fiyat_tir || 0),
+        birim: r.birim,
+        firma: r.firma
+      };
     }
 
 
@@ -4461,6 +4552,26 @@
       if (error) throw error;
     }
 
+    // --- FİYAT CRUD ---
+    async function sbFiyatEkle(f) {
+      var { data, error } = await sb.from('fiyatlar').insert(f).select().single();
+      if (error) throw error;
+      return mapFiyat(data);
+    }
+    async function sbFiyatTopluEkle(fiyatar) {
+      var { data, error } = await sb.from('fiyatlar').insert(fiyatar).select();
+      if (error) throw error;
+      return (data || []).map(mapFiyat);
+    }
+    async function sbFiyatTemizle() {
+      var { error } = await sb.from('fiyatlar').delete().neq('id', 0);
+      if (error) throw error;
+    }
+    async function sbFiyatSil(id) {
+      var { error } = await sb.from('fiyatlar').delete().eq('id', id);
+      if (error) throw error;
+    }
+
     // --- CEK KAYDET (Supabase INSERT) ---
     async function sbCekEkle(c) {
       var { data, error } = await sb.from('cekler').insert({
@@ -4611,6 +4722,7 @@
       if (id === 'finans') renderFinans();
       if (id === 'petrol-cari') renderPetrolCariKartlar();
       if (id === 'cekler') renderCekler();
+      if (id === 'fiyatlar') renderFiyatlar();
     }
 
     // ══════════════════════════════════════════════
@@ -5498,27 +5610,27 @@
           : '<span class="badge ' + kBadge + '">' + r.kaynak + '</span>';
 
         return '<tr class="cari-row-clickable" style="' + rowStyle + 'cursor:pointer;transition:background 0.15s;" onclick="cariDetayAc(\'' + rowDataStr + '\')" onmouseover="this.style.background=\'rgba(43,114,245,0.06)\'" onmouseout="this.style.background=\'' + accentColor + '\'">'
-          + '<td style="font-size:11px;color:var(--text3);text-align:center;width:36px;font-weight:600;">' + rowNum + '</td>'
+          + '<td class="h-m" style="font-size:11px;color:var(--text3);text-align:center;width:36px;font-weight:600;">' + rowNum + '</td>'
           + '<td style="font-size:12px;color:var(--text2);white-space:nowrap;font-variant-numeric:tabular-nums;">' + r.tarih + '</td>'
-          + '<td>' + kaynakLabel + '</td>'
+          + '<td class="h-m">' + kaynakLabel + '</td>'
           + '<td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--text2);">' + cekDurumBadge + r.aciklama + '</td>'
-          + '<td style="text-align:right;white-space:nowrap;">' + borcHtml + '</td>'
-          + '<td style="text-align:right;white-space:nowrap;">' + alacakHtml + '</td>'
+          + '<td class="h-m" style="text-align:right;white-space:nowrap;">' + borcHtml + '</td>'
+          + '<td class="h-m" style="text-align:right;white-space:nowrap;">' + alacakHtml + '</td>'
           + '<td style="text-align:right;white-space:nowrap;">' + balHtml + '</td>'
-          + '<td onclick="event.stopPropagation()" style="text-align:right;">' + actions + '</td>'
+          + '<td class="h-m" onclick="event.stopPropagation()" style="text-align:right;">' + actions + '</td>'
           + '</tr>';
       }).join('') : '<tr><td colspan="8"><div class="empty"><div class="empty-ico">🔍</div><div class="empty-txt">Filtreyle eşleşen kayıt bulunamadı</div></div></td></tr>';
 
       var cariEl = document.getElementById('cari-tablo');
       if (cariEl) cariEl.innerHTML = '<table style="border-collapse:collapse;width:100%;"><thead><tr style="background:linear-gradient(135deg,#f8faff 0%,#f1f5ff 100%);border-bottom:2px solid var(--border);">'
-        + '<th style="text-align:center;width:36px;font-size:10px;color:var(--text3);font-weight:600;padding:10px 8px;">#</th>'
+        + '<th class="h-m" style="text-align:center;width:36px;font-size:10px;color:var(--text3);font-weight:600;padding:10px 8px;">#</th>'
         + '<th style="font-size:11px;font-weight:700;letter-spacing:0.4px;text-transform:uppercase;color:var(--text2);padding:10px 12px;">Tarih</th>'
-        + '<th style="font-size:11px;font-weight:700;letter-spacing:0.4px;text-transform:uppercase;color:var(--text2);padding:10px 12px;">Tür</th>'
+        + '<th class="h-m" style="font-size:11px;font-weight:700;letter-spacing:0.4px;text-transform:uppercase;color:var(--text2);padding:10px 12px;">Tür</th>'
         + '<th style="font-size:11px;font-weight:700;letter-spacing:0.4px;text-transform:uppercase;color:var(--text2);padding:10px 12px;">Açıklama</th>'
-        + '<th style="text-align:right;font-size:11px;font-weight:700;letter-spacing:0.4px;text-transform:uppercase;color:var(--red);padding:10px 12px;">Borç</th>'
-        + '<th style="text-align:right;font-size:11px;font-weight:700;letter-spacing:0.4px;text-transform:uppercase;color:#059669;padding:10px 12px;">Alacak</th>'
+        + '<th class="h-m" style="text-align:right;font-size:11px;font-weight:700;letter-spacing:0.4px;text-transform:uppercase;color:var(--red);padding:10px 12px;">Borç</th>'
+        + '<th class="h-m" style="text-align:right;font-size:11px;font-weight:700;letter-spacing:0.4px;text-transform:uppercase;color:#059669;padding:10px 12px;">Alacak</th>'
         + '<th style="text-align:right;font-size:11px;font-weight:700;letter-spacing:0.4px;text-transform:uppercase;color:var(--blue2);padding:10px 12px;">Bakiye</th>'
-        + '<th style="text-align:right;font-size:11px;color:var(--text3);padding:10px 12px;"></th>'
+        + '<th class="h-m" style="text-align:right;font-size:11px;color:var(--text3);padding:10px 12px;"></th>'
         + '</tr></thead><tbody>' + trs + '</tbody></table>';
 
       // Sayfalama
@@ -5816,7 +5928,18 @@
 
       var reader = new FileReader();
       reader.onload = async function (e) {
-        var text = e.target.result;
+        var buffer = e.target.result;
+        var text = '';
+        try {
+          // Önce UTF-8 dene (Modern web/linux)
+          var decoder = new TextDecoder('utf-8', { fatal: true });
+          text = decoder.decode(buffer);
+        } catch (x) {
+          // Hata verirse Windows-1254 (Türkçe/Excel) dene
+          var decoder = new TextDecoder('windows-1254');
+          text = decoder.decode(buffer);
+        }
+
         var rows = text.split('\n');
         var count = 0;
 
@@ -5890,7 +6013,7 @@
         }
         event.target.value = ''; // Inputu temizle
       };
-      reader.readAsText(file);
+      reader.readAsArrayBuffer(file);
     }
 
     // Tutar yaziya cevirme fonksiyonu
@@ -7637,6 +7760,184 @@
       var todayDateEl = document.getElementById('today-date');
       if (todayDateEl) todayDateEl.textContent = today();
     });
+
+    // ══════════════════════════════════════════════
+    //  GÜNCEL FİYATLAR MANTIĞI (HOROZ, GPS, POLİNAS)
+    // ══════════════════════════════════════════════
+    var aktifFiyatFirma = 'HOROZ';
+
+    function setFiyatFirma(firma) {
+      aktifFiyatFirma = firma;
+      var h = document.getElementById('ff-horoz');
+      var g = document.getElementById('ff-gps');
+      var p = document.getElementById('ff-polinas');
+      if (h) h.style.border = (firma === 'HOROZ' ? '2.5px solid var(--blue2)' : '1.5px solid var(--border)');
+      if (g) g.style.border = (firma === 'GPS' ? '2.5px solid var(--green2)' : '1.5px solid var(--border)');
+      if (p) p.style.border = (firma === 'POLİNAS' ? '2.5px solid var(--gold)' : '1.5px solid var(--border)');
+
+      var btnLabel = document.getElementById('price-firm-btn');
+      if (btnLabel) btnLabel.textContent = firma;
+
+      var searchLabel = document.getElementById('price-search-firm-name');
+      if (searchLabel) searchLabel.textContent = firma;
+
+      renderFiyatlar();
+    }
+
+    function renderFiyatlar() {
+      // Özet kart sayılarını güncelle
+      var hCount = DB.fiyatlar.filter(function (f) { return f.firma === 'HOROZ'; }).length;
+      var gCount = DB.fiyatlar.filter(function (f) { return f.firma === 'GPS'; }).length;
+      var pCount = DB.fiyatlar.filter(function (f) { return f.firma === 'POLİNAS'; }).length;
+
+      var hEl = document.getElementById('fs-horoz-count'); if (hEl) hEl.textContent = hCount + ' şehir';
+      var gEl = document.getElementById('fs-gps-count'); if (gEl) gEl.textContent = gCount + ' şehir';
+      var pEl = document.getElementById('fs-polinas-count'); if (pEl) pEl.textContent = pCount + ' şehir';
+
+      // Admin kontrolü - butonları gizle/göster
+      var actions = document.querySelector('#pg-fiyatlar .ph-actions');
+      if (actions) {
+        actions.style.display = (currentUser && currentUser.role === 'admin') ? 'flex' : 'none';
+      }
+      searchPrices();
+    }
+
+    async function handlePriceExcel(event) {
+      var file = event.target.files[0];
+      if (!file) return;
+
+      showToast(aktifFiyatFirma + ' Fiyat Listesi işleniyor... ⏳', 'info');
+      var reader = new FileReader();
+
+      reader.onload = async function (e) {
+        try {
+          var data = new Uint8Array(e.target.result);
+          var workbook = XLSX.read(data, { type: 'array' });
+          var firstSheet = workbook.SheetNames[0];
+          var jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet], { header: 1 });
+
+          if (jsonData.length < 2) {
+            showToast('Excel dosyasında veri bulunamadı.', 'error');
+            return;
+          }
+
+          // Sabit Yapı: A=Şehir(0), B=Kamyon(1), C=Tır(2)
+          var colSehir = 0;
+          var colKamyon = 1;
+          var colTir = 2;
+
+          var pricesToUpload = [];
+          // A2 Sütunundan başlamak için i=1
+          for (var i = 1; i < jsonData.length; i++) {
+            var row = jsonData[i];
+            if (!row || row.length < 1) continue;
+
+            var sehir = String(row[colSehir] || '').trim().toUpperCase();
+            if (!sehir) continue;
+
+            // Fiyat temizleme fonksiyonu: Kuruslari (virgül sonrasını) atar
+            var temizle = function (val) {
+              if (typeof val === 'number') return Math.floor(val);
+              var s = String(val || '0').trim();
+              if (s.includes(',')) s = s.split(',')[0]; 
+              s = s.replace(/[^0-9]/g, ""); 
+              return parseInt(s) || 0;
+            };
+
+            var fk = temizle(row[colKamyon]);
+            var ft = temizle(row[colTir]);
+
+            pricesToUpload.push({
+              sehir: sehir,
+              fiyat_kamyon: fk,
+              fiyat_tir: ft,
+              birim: 'Sefer',
+              firma: aktifFiyatFirma
+            });
+          }
+
+          if (pricesToUpload.length === 0) {
+            showToast('Geçerli fiyat verisi okunamadı. A sütununda şehir olduğundan emin olun.', 'error');
+            return;
+          }
+
+          if (confirm(aktifFiyatFirma + " için " + pricesToUpload.length + " adet fiyat yüklenecek. Eski veriler silinecek. Onaylıyor musun?")) {
+            await sb.from('fiyatlar').delete().eq('firma', aktifFiyatFirma);
+            var { error: insErr } = await sb.from('fiyatlar').insert(pricesToUpload);
+            if (insErr) throw insErr;
+
+            var fi = await sb.from('fiyatlar').select('*').order('sehir');
+            DB.fiyatlar = (fi.data || []).map(mapFiyat);
+
+            showToast(aktifFiyatFirma + ' fiyatları başarıyla yüklendi! ✅');
+            renderFiyatlar();
+          }
+        } catch (err) {
+          console.error('Excel Hatası:', err);
+          showToast('Hata: ' + err.message, 'error');
+        } finally {
+          event.target.value = '';
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    async function clearPrices() {
+      if (!confirm(aktifFiyatFirma + ' firmasının TÜM fiyat verileri silinecek. Emin misiniz?')) return;
+      try {
+        var { error } = await sb.from('fiyatlar').delete().eq('firma', aktifFiyatFirma);
+        if (error) throw error;
+        DB.fiyatlar = DB.fiyatlar.filter(function (f) { return f.firma !== aktifFiyatFirma; });
+        showToast(aktifFiyatFirma + ' fiyatları temizlendi 🗑️');
+        renderFiyatlar();
+      } catch (err) { showToast('Hata: ' + err.message, 'error'); }
+    }
+
+    function searchPrices() {
+      var q = document.getElementById('price-search-input').value.trim().toUpperCase();
+      var el = document.getElementById('price-results');
+      if (!el) return;
+
+      var results = DB.fiyatlar.filter(function (f) {
+        return f.firma === aktifFiyatFirma && (!q || f.sehir.includes(q));
+      });
+
+      if (results.length === 0) {
+        el.innerHTML = '<div class="empty"><div class="empty-ico">🔍</div><div class="empty-txt">' + (q ? '"<b>' + q + '</b>" için sonuç bulunamadı.' : aktifFiyatFirma + ' listesi henüz boş.') + '</div></div>';
+        return;
+      }
+
+      var isAdmin = currentUser && currentUser.role === 'admin';
+      var trs = results.map(function (f) {
+        return '<tr>' +
+          '<td style="font-weight:700; color:var(--navy);">📍 ' + f.sehir + '</td>' +
+          '<td style="font-weight:800; color:var(--blue2); font-size:15px; letter-spacing:0.5px;">' +
+          '<span style="color:var(--text); font-size:11px; font-weight:400; display:block; margin-bottom:2px;">KAMYON | TIR</span>' +
+          '₺' + fmt(f.fiyat_kamyon || 0) + ' | ₺' + fmt(f.fiyat_tir || 0) +
+          '</td>' +
+          '<td style="color:var(--text3);font-size:12px;">' + (f.birim || 'Ton') + '</td>' +
+          (isAdmin ? '<td style="text-align:right;"><button class="del-btn" onclick="delFiyat(' + f.id + ')">✕</button></td>' : '') +
+          '</tr>';
+      }).join('');
+
+      el.innerHTML = '<table><thead><tr>' +
+        '<th>Şehir / Bölge</th>' +
+        '<th>Kamyon | Tır</th>' +
+        '<th>Birim</th>' +
+        (isAdmin ? '<th style="text-align:right">İşlem</th>' : '') +
+        '</tr></thead><tbody>' + trs + '</tbody></table>';
+    }
+
+    async function delFiyat(id) {
+      if (!confirm('Bu fiyatı silmek istediğinize emin misiniz?')) return;
+      try {
+        var { error } = await sb.from('fiyatlar').delete().eq('id', id);
+        if (error) throw error;
+        DB.fiyatlar = DB.fiyatlar.filter(function (f) { return f.id !== id; });
+        showToast('Fiyat silindi.');
+        renderFiyatlar();
+      } catch (err) { showToast('Hata: ' + err.message, 'error'); }
+    }
 
   </script>
 </body>
