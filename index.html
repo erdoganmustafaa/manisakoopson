@@ -6902,9 +6902,9 @@
         document.querySelectorAll('.nav-item, .sb-section').forEach(function (el) {
           el.style.display = 'none';
         });
-        // Sadece cari-seferler nav item'ını göster
+        // Sadece cari-seferler ve güncel fiyatlar nav item'larını göster
         document.querySelectorAll('.nav-item').forEach(function (el) {
-          if (el.getAttribute('onclick') && el.getAttribute('onclick').indexOf('cari-seferler') > -1) {
+          if (el.getAttribute('onclick') && (el.getAttribute('onclick').indexOf('cari-seferler') > -1 || el.getAttribute('onclick').indexOf('fiyatlar') > -1)) {
             el.style.display = '';
           }
         });
@@ -7797,7 +7797,8 @@
       // Admin kontrolü - butonları gizle/göster
       var actions = document.querySelector('#pg-fiyatlar .ph-actions');
       if (actions) {
-        actions.style.display = (currentUser && currentUser.role === 'admin') ? 'flex' : 'none';
+        var isAdmin = (currentUser && currentUser.role === 'admin');
+        actions.style.display = isAdmin ? 'flex' : 'none';
       }
       searchPrices();
     }
